@@ -37,14 +37,14 @@
 </head>
 <body><div class="form-container">
     <h1>Create Account</h1>
-    <form id="signup-form">
+    <form id="signup-form" action="/register" method="post">
         <div class="form-group">
-            <label for="signup-username">Username</label>
-            <input id="signup-username" type="text" required>
+            <label for="username">Username:</label><br>
+            <input type="text" id="username" name="username"><br>
         </div>
         <div class="form-group">
-            <label for="signup-password">Password</label>
-            <input id="signup-password" type="password" required>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password"><br>
         </div>
         <div class="form-group">
             <button type="submit">Create Account</button>
