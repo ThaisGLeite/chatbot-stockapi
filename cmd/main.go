@@ -2,8 +2,6 @@ package main
 
 import (
 	"chatbot/handle"
-	"chatbot/login"
-	"chatbot/register"
 	"log"
 	"net/http"
 	"os"
@@ -22,10 +20,10 @@ func main() {
 	nats.Connect(os.Getenv("NATS_URL"))
 
 	// Handle "/register" route
-	http.HandleFunc("/register", register.Handler)
+	http.HandleFunc("/register", handle.RegisterHandler)
 
 	// Handle "/login" route
-	http.HandleFunc("/login", login.Handler)
+	http.HandleFunc("/login", handle.LoginHandler)
 
 	// Handle static files
 	handle.Handle()
