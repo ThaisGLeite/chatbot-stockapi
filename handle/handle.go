@@ -4,7 +4,10 @@ import (
 	"chatbot/redis"
 	"context"
 	"net/http"
+	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,9 +42,23 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// User is authenticated, return a placeholder token
-		// Note: In a real application, you would generate and return a JWT or similar token here
-		w.Write([]byte("token"))
+		// Create the JWT token
+		expirationTime := time.Now().Add(24 * time.Hour)
+		claims := &jwt.StandardClaims{
+			Subject:   username,
+			ExpiresAt: expirationTime.Unix(),
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		var jwtKey = []byte(os.Getenv("JWT_KEY"))
+		tokenString, err := token.SignedString(jwtKey)
+		if err != nil {
+			http.Error(w, "Error generating token", http.StatusInternalServerError)
+			return
+		}
+
+		// Write the token to the response
+		w.Write([]byte(tokenString))
 		return
 	}
 
