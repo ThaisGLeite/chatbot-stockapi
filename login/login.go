@@ -4,6 +4,8 @@ import (
 	"chatbot/redis"
 	"context"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -17,15 +19,16 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		// Get Redis client
 		redisClient := redis.GetRedisClient()
 
-		// Retrieve password from Redis for the submitted username
-		storedPassword, err := redisClient.Get(context.Background(), username).Result()
+		// Retrieve hashed password from Redis for the submitted username
+		hashedPassword, err := redisClient.Get(context.Background(), username).Result()
 		if err != nil {
 			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 			return
 		}
 
-		// Check if submitted password matches stored password
-		if password != storedPassword {
+		// Check if submitted password matches stored hashed password
+		err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+		if err != nil {
 			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 			return
 		}
