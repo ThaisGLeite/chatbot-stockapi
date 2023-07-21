@@ -1,0 +1,29 @@
+# Start with the official Golang image as the build environment.
+FROM golang:1.20-alpine as builder
+
+# Install git.
+RUN apk update && apk add --no-cache git
+
+# Clone the NATS server repository.
+RUN git clone https://github.com/nats-io/nats-server.git /go/src/nats-server
+
+# Set the working directory.
+WORKDIR /go/src/nats-server
+
+# Download dependencies
+RUN go mod download
+
+# Build the server.
+RUN CGO_ENABLED=0 go build -v -a -tags netgo -installsuffix netgo -o nats-server main.go
+
+# Now, start a new stage, using a smaller base image.
+FROM alpine:latest
+
+# Copy the server executable from the previous stage.
+COPY --from=builder /go/src/nats-server/nats-server /nats-server
+
+# Expose the NATS server port.
+EXPOSE 4222
+
+# The command to run the NATS server on container startup.
+CMD ["/nats-server"]
