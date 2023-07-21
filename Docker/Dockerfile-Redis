@@ -1,0 +1,15 @@
+# Pull base image
+FROM redis:latest
+
+# Define working directory
+WORKDIR /data
+
+# Copy the script that sets up the user and password
+COPY setup-redis.sh /setup-redis.sh
+
+# Make the script executable
+RUN chmod +x /setup-redis.sh
+
+# Run the setup script
+CMD ["/bin/bash", "-c", "/setup-redis.sh"]
+
