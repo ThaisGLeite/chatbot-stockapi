@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .form-container {
+            width: 300px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .form-group button {
+            padding: 10px 20px;
+            background-color: #008CBA; /* Blue color */
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        .form-group button:hover {
+            background-color: #007B9A; /* Darker blue */
+        }
+    </style>
+</head>
+<body>
+ 
+
+        <h1>Login</h1>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="login-username">Username</label>
+                <input id="login-username" type="text" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input id="login-password" type="password" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Login</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="script-login.js"></script>
+</body>
+</html>

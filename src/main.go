@@ -17,11 +17,11 @@ func main() {
 	})
 
 	// Serving static files
-	fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir("../static"))
 	http.Handle("/", fs)
 
-	log.Println("Serving on localhost:8000...")
-	err := http.ListenAndServe(":8000", nil)
+	log.Println("Serving on localhost:8080...")
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

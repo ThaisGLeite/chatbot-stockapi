@@ -2,7 +2,6 @@
 <html>
 <head>
     <title>Chat Room</title>
-    <!-- Include Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
         .chat-room {
@@ -31,11 +30,19 @@
         </div>
     </div>
 
-    <!-- Include jQuery and Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-    
-    <!-- Script to handle chat functionality would go here -->
+
+    <script>
+        // Check if user is logged in
+        if (!localStorage.getItem('token')) {
+            // If not, redirect to login page
+            window.location.href = 'login.html';
+        }
+
+        // Rest of the chat room functionality here
+    </script>
+
     <script src="script.js"></script>
 </body>
 </html>
