@@ -2,6 +2,7 @@ package main
 
 import (
 	"chatbot/handle"
+	"chatbot/redis"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,9 @@ func main() {
 
 	// Connect to the NATS server
 	nats.Connect(os.Getenv("NATS_URL"))
+
+	// Create redis client
+	redis.InitializeRedisClient()
 
 	// Handle "/register" route
 	http.HandleFunc("/register", handle.RegisterHandler)

@@ -2,10 +2,10 @@ package handle
 
 import (
 	"chatbot/redis"
-	"context"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -30,11 +30,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		// Get Redis client
-		redisClient := redis.GetRedisClient()
-
 		// Retrieve hashed password from Redis for the submitted username
-		hashedPassword, err := redisClient.Get(context.Background(), username).Result()
+		hashedPassword, err := redis.GetHashedPassword(username)
 		if err != nil {
 			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 			return
@@ -86,11 +83,8 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Get Redis client
-		redisClient := redis.GetRedisClient()
-
 		// Store form data in Redis
-		err = redisClient.Set(context.Background(), username, string(hashedPassword), 0).Err()
+		err = redis.StoreUserData(username, string(hashedPassword))
 		if err != nil {
 			http.Error(w, "Error storing data in Redis", http.StatusInternalServerError)
 			return
@@ -117,8 +111,7 @@ func CreateChatroomHandler(w http.ResponseWriter, r *http.Request) {
 		chatroomCounter++
 
 		// Store chatroomName with chatroomCounter as ID in Redis
-		redisClient := redis.GetRedisClient()
-		err := redisClient.Set(context.Background(), strconv.FormatInt(chatroomCounter, 10), chatroomName, 0).Err()
+		err := redis.StoreChatroomData(strconv.FormatInt(chatroomCounter, 10), chatroomName)
 		if err != nil {
 			http.Error(w, "Error creating chatroom", http.StatusInternalServerError)
 			return
@@ -126,6 +119,55 @@ func CreateChatroomHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Write the chatroom ID to the response
 		w.Write([]byte(strconv.FormatInt(chatroomCounter, 10)))
+		return
+	}
+
+	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+}
+
+// SendMessageHandler handles sending messages
+func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		// Parse form data
+		r.ParseForm()
+
+		chatroomID := r.FormValue("chatroomID")
+		username := r.FormValue("username")
+		message := r.FormValue("message")
+
+		// Store message in chatroom
+		err := redis.StoreChatroomMessage(chatroomID, username, message)
+		if err != nil {
+			http.Error(w, "Error sending message", http.StatusInternalServerError)
+			return
+		}
+
+		return
+	}
+
+	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+}
+
+// RetrieveMessagesHandler handles retrieving all messages from a chatroom
+func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		// Parse form data
+		r.ParseForm()
+
+		chatroomID := r.FormValue("chatroomID")
+
+		// Retrieve all messages from the chatroom
+		messages, err := redis.RetrieveChatroomMessages(chatroomID)
+		if err != nil {
+			http.Error(w, "Error retrieving messages", http.StatusInternalServerError)
+			return
+		}
+
+		// Convert the slice of messages to a single string with each message on a new line
+		messagesString := strings.Join(messages, "\n")
+
+		// Write the messages to the response
+		w.Write([]byte(messagesString))
 		return
 	}
 

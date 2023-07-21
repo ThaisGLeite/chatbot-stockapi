@@ -1,97 +1,70 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Login Page</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .form-container {
-            width: 300px;
-            margin: 0 auto;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-        .form-group button, .form-group a {
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            color: white;
-            text-decoration: none;
-            margin-top: 10px;
-            display: inline-block;
-            text-align: center;
-        }
-        .form-group button {
-            background-color: #008CBA; /* Blue color */
-        }
-        .form-group button:hover {
-            background-color: #007B9A; /* Darker blue */
-        }
-        .form-group a {
-            background-color: #f7941d; /* Orange color */
-        }
-        .form-group a:hover {
-            background-color: #f27304; /* Darker orange */
-        }
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .form-container {
+        width: 300px;
+        margin: 0 auto;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+      .form-group button,
+      .form-group a {
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        color: white;
+        text-decoration: none;
+        margin-top: 10px;
+        display: inline-block;
+        text-align: center;
+      }
+      .form-group button {
+        background-color: #008cba; /* Blue color */
+      }
+      .form-group button:hover {
+        background-color: #007b9a; /* Darker blue */
+      }
+      .form-group a {
+        background-color: #f7941d; /* Orange color */
+      }
+      .form-group a:hover {
+        background-color: #f27304; /* Darker orange */
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Login</h1>
     <form id="login-form" class="form-container">
-        <div class="form-group">
-            <label for="login-username">Username</label>
-            <input id="login-username" type="text" required>
-        </div>
-        <div class="form-group">
-            <label for="login-password">Password</label>
-            <input id="login-password" type="password" required>
-        </div>
-        <div class="form-group">
-            <button type="submit">Login</button>
-        </div>
-        <div class="form-group">
-            <a href="register.html">Register</a>
-        </div>
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" required />
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" required />
+      </div>
+      <div class="form-group">
+        <button type="submit">Login</button>
+      </div>
+      <div class="form-group">
+        <a href="register.html">Register</a>
+      </div>
     </form>
-    <script>
-        document.getElementById('login-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            var username = document.getElementById('login-username').value;
-            var password = document.getElementById('login-password').value;
-
-            fetch('/login', {
-                method: 'POST',
-                body: new URLSearchParams({
-                    'username': username,
-                    'password': password
-                }),
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            }).then(function(response) {
-                if(response.status !== 200) {
-                    alert('Invalid username or password');
-                    return;
-                }
-
-                response.text().then(function(token) {
-                    localStorage.setItem('token', token);
-                    window.location.href = 'index.html';
-                });
-            });
-        });
-    </script>
-</body>
+    <script src="scripts/script-login.js"></script>
+  </body>
 </html>
