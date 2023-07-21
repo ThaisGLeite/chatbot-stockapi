@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Application</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  </head>
+  <body>
+    <h1>Welcome to our Chat Application</h1>
+
+    <script>
+      $(document).ready(function () {
+        // Check local storage for JWT token
+        var token = localStorage.getItem("token");
+
+        // If token exists, user is logged in, so redirect to createOrEnterChatroom.html
+        if (token) {
+          window.location.href = "createOrEnterChatroom.html";
+        } else {
+          // If no token, user is not logged in, so redirect to login.html
+          window.location.href = "login.html";
+        }
+      });
+    </script>
+  </body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Application</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  </head>
+  <body>
+    <h1>Welcome to our Chat Application</h1>
+
+    <script>
+      $(document).ready(function () {
+        // Check local storage for JWT token
+        var token = localStorage.getItem("token");
+
+        // If token exists, user is logged in, so redirect to createOrEnterChatroom.html
+        if (token) {
+          window.location.href = "createOrEnterChatroom.html";
+        } else {
+          // If no token, user is not logged in, so redirect to login.html
+          window.location.href = "login.html";
+        }
+      });
+    </script>
+  </body>
+</html>

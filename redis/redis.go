@@ -67,3 +67,8 @@ func StoreChatroomMessage(chatroomID string, username string, message string) er
 	err := redisClient.RPush(context.Background(), chatroomID, messageToStore).Err()
 	return err
 }
+
+// Close connection to Redis
+func Close() {
+	redisClient.Close()
+}

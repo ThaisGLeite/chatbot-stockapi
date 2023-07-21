@@ -2,13 +2,12 @@ package main
 
 import (
 	"chatbot/handle"
+	"chatbot/natsclient"
 	"chatbot/redis"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/nats-io/nats.go"
 )
 
 func main() {
@@ -18,7 +17,7 @@ func main() {
 	}
 
 	// Connect to the NATS server
-	nats.Connect(os.Getenv("NATS_URL"))
+	natsclient.Connect()
 
 	// Create redis client
 	redis.InitializeRedisClient()
@@ -33,4 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer natsclient.Close()
+	defer redis.Close()
 }
