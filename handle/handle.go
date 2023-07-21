@@ -5,15 +5,20 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
+var chatroomCounter int64
+
 func Handle() {
 	fs := http.FileServer(http.Dir("../static"))
 	http.Handle("/", fs)
+	http.HandleFunc("/createChatroom", CreateChatroomHandler)
 }
 
 // LoginHandler handles login requests
@@ -97,4 +102,32 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.ServeFile(w, r, "../static/register.html")
+}
+
+// CreateChatroomHandler handles chatroom creation requests
+func CreateChatroomHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == http.MethodPost {
+		// Parse form data
+		r.ParseForm()
+
+		chatroomName := r.FormValue("chatroomName")
+
+		// Increment chatroomCounter
+		chatroomCounter++
+
+		// Store chatroomName with chatroomCounter as ID in Redis
+		redisClient := redis.GetRedisClient()
+		err := redisClient.Set(context.Background(), strconv.FormatInt(chatroomCounter, 10), chatroomName, 0).Err()
+		if err != nil {
+			http.Error(w, "Error creating chatroom", http.StatusInternalServerError)
+			return
+		}
+
+		// Write the chatroom ID to the response
+		w.Write([]byte(strconv.FormatInt(chatroomCounter, 10)))
+		return
+	}
+
+	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 }

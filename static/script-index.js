@@ -9,3 +9,14 @@ if (!localStorage.getItem("token")) {
 window.onbeforeunload = function () {
   localStorage.removeItem("token");
 };
+
+$("#create-chatroom-button").click(function () {
+  var chatroomName = $("#chatroom-input").val();
+  $.post("/createChatroom", { chatroomName: chatroomName })
+    .done(function (chatroomId) {
+      alert("Chatroom created with ID: " + chatroomId);
+    })
+    .fail(function () {
+      alert("Error creating chatroom");
+    });
+});
