@@ -2,6 +2,7 @@ package main
 
 import (
 	"chatbot/handle"
+	"chatbot/login"
 	"chatbot/register"
 	"log"
 	"net/http"
@@ -22,6 +23,9 @@ func main() {
 
 	// Handle "/register" route
 	http.HandleFunc("/register", register.Handler)
+
+	// Handle "/login" route
+	http.HandleFunc("/login", login.Handler)
 
 	// Handle static files
 	handle.Handle()
