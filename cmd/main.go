@@ -23,17 +23,13 @@ func main() {
 	// Create redis client
 	redis.InitializeRedisClient()
 
-	// Handle "/register" route
-	http.HandleFunc("/register", handle.RegisterHandler)
-
-	// Handle "/login" route
+	handle.StaticFilesHandler()
 	http.HandleFunc("/login", handle.LoginHandler)
-
-	// Handle static files
-	handle.Handle()
-
-	log.Println("Serving on localhost:8080...")
-	err = http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/register", handle.RegisterHandler)
+	http.HandleFunc("/createChatroom", handle.CreateChatroomHandler)
+	http.HandleFunc("/sendMessage", handle.SendMessageHandler)
+	http.HandleFunc("/retrieveMessages", handle.RetrieveMessagesHandler)
+	http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
