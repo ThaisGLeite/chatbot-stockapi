@@ -1,11 +1,13 @@
 package handle
 
 import (
+	"chatbot/natsclient"
 	"chatbot/redis"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
@@ -47,6 +49,23 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		chatroomID := r.FormValue("chatroomID")
 		username := r.FormValue("username")
 		message := r.FormValue("message")
+
+		// Check if message starts with /stock=
+		if strings.HasPrefix(message, "/stock=") {
+			stockCode := strings.TrimPrefix(message, "/stock=")
+
+			// Post the stock code to a NATS queue
+			natsclient.Client.Publish("stock_codes", []byte(stockCode))
+			natsclient.Client.Flush()
+
+			if err := natsclient.Client.LastError(); err != nil {
+				http.Error(w, "Error posting to NATS queue", http.StatusInternalServerError)
+				fmt.Println("Error posting to NATS queue", err)
+				return
+			}
+
+			return
+		}
 
 		// Store message in chatroom
 		err := redis.StoreMessageInChatroom(chatroomID, username, message)

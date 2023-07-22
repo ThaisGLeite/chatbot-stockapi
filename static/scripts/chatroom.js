@@ -19,7 +19,7 @@ $("#send-button").click(function () {
     message: message,
   })
     .done(function () {
-      alert("Message sent");
+      // message sent
     })
     .fail(function () {
       alert("Error sending message");

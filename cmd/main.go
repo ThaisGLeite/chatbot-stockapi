@@ -4,6 +4,7 @@ import (
 	"chatbot/handle"
 	"chatbot/natsclient"
 	"chatbot/redis"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -18,7 +19,11 @@ func main() {
 
 	// Connect to the NATS server
 	natsclient.Connect()
-
+	if natsclient.Client.IsConnected() {
+		fmt.Println("Connected to NATS server")
+	} else {
+		fmt.Println("Not connected to NATS server")
+	}
 	// Create redis client
 	redis.InitializeRedisClient()
 
