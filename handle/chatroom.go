@@ -3,6 +3,7 @@ package handle
 import (
 	"chatbot/redis"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -22,9 +23,10 @@ func CreateChatroomHandler(w http.ResponseWriter, r *http.Request) {
 		chatroomCounter++
 
 		// Store chatroomName with chatroomCounter as ID in Redis
-		err := redis.StoreChatroomData(strconv.FormatInt(chatroomCounter, 10), chatroomName)
+		err := redis.StoreChatroomData(chatroomName)
 		if err != nil {
 			http.Error(w, "Error creating chatroom", http.StatusInternalServerError)
+			fmt.Println("Error creating chatroom", err)
 			return
 		}
 
@@ -50,6 +52,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		err := redis.StoreMessageInChatroom(chatroomID, username, message)
 		if err != nil {
 			http.Error(w, "Error sending message", http.StatusInternalServerError)
+			fmt.Println("Error sending message", err)
 			return
 		}
 
@@ -71,6 +74,7 @@ func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		messages, err := redis.RetrieveChatroomMessages(chatroomID)
 		if err != nil {
 			http.Error(w, "Error retrieving messages", http.StatusInternalServerError)
+			fmt.Println("Error retrieving messages", err)
 			return
 		}
 
@@ -78,6 +82,7 @@ func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		messagesJson, err := json.Marshal(messages)
 		if err != nil {
 			http.Error(w, "Error converting messages to JSON", http.StatusInternalServerError)
+			fmt.Println("Error converting messages to JSON", err)
 			return
 		}
 
@@ -87,4 +92,31 @@ func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+}
+
+func GetAllChatroomsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	chatrooms, err := redis.GetAllChatrooms()
+	if err != nil {
+		http.Error(w, "Error getting chatrooms", http.StatusInternalServerError)
+		fmt.Println("Error getting chatrooms", err)
+		return
+	}
+
+	// Extract only chatroom names
+	var chatroomNames []string
+	chatroomNames = append(chatroomNames, chatrooms...)
+
+	chatroomsJson, err := json.Marshal(chatroomNames)
+	if err != nil {
+		http.Error(w, "Error converting chatrooms to JSON", http.StatusInternalServerError)
+		fmt.Println("Error converting chatrooms to JSON", err)
+		return
+	}
+
+	w.Write(chatroomsJson)
 }

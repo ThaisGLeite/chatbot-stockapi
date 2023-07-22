@@ -1,0 +1,37 @@
+# -------------------------------------------------------------------------------------
+# THIS IMAGE SHOULD BE MOUNTED FROM THE ROOT DIRECTORY, WITH THE COMMAND
+# docker build --pull --rm -f "Docker/Dockerfile-BotService" -t botservice:botservice .
+# -------------------------------------------------------------------------------------
+#
+# Step 1
+FROM golang:latest as builder
+
+# Set the Current Working Directory inside the container
+WORKDIR /app
+
+# Copy go mod and sum files 
+COPY ./botService/go.mod ./botService/
+
+# Download all dependencies. 
+# Dependencies will be cached if the go.mod and the go.sum files are not changed 
+RUN cd ./botService && go mod download 
+
+# Copy the source from the current directory to the Working Directory inside the container 
+COPY ./botService/ ./botService/
+
+# Build the Go app
+RUN cd ./botService && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bot .
+
+# Start a new stage from scratch
+FROM alpine:latest  
+
+WORKDIR /root/
+
+# Copy the binary from builder
+COPY --from=builder /app/botService/bot .
+
+# Expose port 8080 to the outside world
+EXPOSE 8080
+
+# Command to run the executable
+CMD ["./bot"] 

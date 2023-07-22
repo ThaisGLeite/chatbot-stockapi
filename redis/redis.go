@@ -77,15 +77,10 @@ func StoreUserData(username string, hashedPassword string) error {
 }
 
 // This function stores chatroom data in Redis
-func StoreChatroomData(chatroomID string, chatroomName string) error {
-	err := redisClient.Set(context.Background(), chatroomID, chatroomName, 0).Err()
+func StoreChatroomData(chatroomName string) error {
+	// Store chatroom data in a Redis Set
+	err := redisClient.SAdd(context.Background(), "chatrooms", chatroomName).Err()
 	return err
-}
-
-// This function retrieves hashed password from Redis for the submitted username
-func GetHashedPassword(username string) (string, error) {
-	hashedPassword, err := redisClient.Get(context.Background(), username).Result()
-	return hashedPassword, err
 }
 
 // StoreChatroomMessage stores a user's message in a chatroom
@@ -96,6 +91,18 @@ func StoreChatroomMessage(chatroomID string, username string, message string) er
 	// Append the message to the list of messages in this chatroom
 	err := redisClient.RPush(context.Background(), chatroomID, messageToStore).Err()
 	return err
+}
+
+// This function retrieves hashed password from Redis for the submitted username
+func GetHashedPassword(username string) (string, error) {
+	hashedPassword, err := redisClient.Get(context.Background(), username).Result()
+	return hashedPassword, err
+}
+
+// Fetch all chatrooms from the Redis Set
+func GetAllChatrooms() ([]string, error) {
+	chatrooms, err := redisClient.SMembers(context.Background(), "chatrooms").Result()
+	return chatrooms, err
 }
 
 // Close connection to Redis

@@ -28,6 +28,7 @@ func main() {
 	http.HandleFunc("/createChatroom", handle.CreateChatroomHandler)
 	http.HandleFunc("/sendMessage", handle.SendMessageHandler)
 	http.HandleFunc("/retrieveMessages", handle.RetrieveMessagesHandler)
+	http.HandleFunc("/getAllChatrooms", handle.GetAllChatroomsHandler)
 	http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err)

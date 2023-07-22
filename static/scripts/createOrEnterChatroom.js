@@ -6,12 +6,21 @@ if (!sessionStorage.getItem("token")) {
 }
 
 $(document).ready(function () {
+  $.get("/getAllChatrooms")
+    .done(function (data) {
+      var chatroomNames = JSON.parse(data);
+      chatroomNames.forEach(function (chatroomName) {
+        $("#chatroom-list").append("<li>" + chatroomName + "</li>");
+      });
+    })
+    .fail(function () {
+      alert("Error getting chatrooms");
+    });
+
   $("#create-chatroom-button").click(function () {
     var chatroomName = $("#chatroom-input").val();
     $.post("/createChatroom", { chatroomName: chatroomName })
       .done(function (chatroomId) {
-        alert("Chatroom created with ID: " + chatroomId);
-
         // Save chatroom ID in session storage
         sessionStorage.setItem("chatroomID", chatroomId);
 
@@ -22,17 +31,17 @@ $(document).ready(function () {
         alert("Error creating chatroom");
       });
   });
-});
 
-$("#enter-chatroom-button").click(function () {
-  var chatroomID = $("#chatroom-input").val();
-  if (chatroomID) {
-    // Save chatroom ID in session storage
-    sessionStorage.setItem("chatroomID", chatroomID);
+  $("#enter-chatroom-button").click(function () {
+    var chatroomID = $("#chatroom-input").val();
+    if (chatroomID) {
+      // Save chatroom ID in session storage
+      sessionStorage.setItem("chatroomID", chatroomID);
 
-    // Redirect to chatroom.html
-    window.location.href = "chatroom.html";
-  } else {
-    alert("Please enter a chatroom ID");
-  }
+      // Redirect to chatroom.html
+      window.location.href = "chatroom.html";
+    } else {
+      alert("Please enter a chatroom ID");
+    }
+  });
 });
