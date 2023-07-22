@@ -44,6 +44,15 @@ func StoreMessageInChatroom(chatroomID string, username string, message string) 
 	return err
 }
 
+// Store stock data in chatroom
+func StoreStockDataInChatroom(chatroomID string, stockData model.StockData) error {
+	// Prepare stock data message
+	stockDataMessage := fmt.Sprintf("Stock code: %s, price: %f", stockData.StockCode, stockData.Price)
+
+	// Store stock data as a message in the chatroom
+	return StoreMessageInChatroom(chatroomID, "Bot", stockDataMessage)
+}
+
 // Retrieve all messages from a chatroom
 func RetrieveChatroomMessages(chatroomID string) ([]model.ChatMessage, error) {
 	// Get all messages from this chatroom

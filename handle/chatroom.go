@@ -1,13 +1,18 @@
 package handle
 
 import (
+	"chatbot/model"
 	"chatbot/natsclient"
 	"chatbot/redis"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/nats-io/nats.go"
 )
 
 // Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
@@ -138,4 +143,44 @@ func GetAllChatroomsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(chatroomsJson)
+}
+
+func ListenStockData() {
+	// Create a new ticker that ticks every 3 seconds
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	// Subscribe to the stock_data topic
+	_, err := natsclient.Client.Subscribe("stock_data", func(m *nats.Msg) {
+		// Unmarshal the stock data from the message
+		var stockData model.StockData
+		err := json.Unmarshal(m.Data, &stockData)
+		if err != nil {
+			fmt.Println("Error unmarshalling stock data: ", err)
+			return
+		}
+
+		// Store the stock data in all chatrooms
+		chatrooms, err := redis.GetAllChatrooms()
+		if err != nil {
+			fmt.Println("Error getting all chatrooms: ", err)
+			return
+		}
+
+		for _, chatroom := range chatrooms {
+			err := redis.StoreStockDataInChatroom(chatroom, stockData)
+			if err != nil {
+				fmt.Println("Error storing stock data in chatroom: ", err)
+				return
+			}
+		}
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for range ticker.C {
+		natsclient.Client.Flush()
+	}
 }

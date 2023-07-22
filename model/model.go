@@ -6,3 +6,9 @@ type ChatMessage struct {
 	Message   string `json:"message"`
 	Timestamp int64  `json:"timestamp"`
 }
+
+// Define a struct to hold your message data
+type StockData struct {
+	StockCode string  `json:"stockCode"`
+	Price     float64 `json:"price"`
+}

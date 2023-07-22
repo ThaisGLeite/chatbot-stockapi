@@ -19,13 +19,15 @@ func main() {
 
 	// Connect to the NATS server
 	natsclient.Connect()
-	if natsclient.Client.IsConnected() {
-		fmt.Println("Connected to NATS server")
-	} else {
+	if !natsclient.Client.IsConnected() {
 		fmt.Println("Not connected to NATS server")
 	}
 	// Create redis client
 	redis.InitializeRedisClient()
+
+	// Listen to stock data and update redis cache with new data
+	// Run in a goroutine
+	go handle.ListenStockData()
 
 	handle.StaticFilesHandler()
 	http.HandleFunc("/login", handle.LoginHandler)

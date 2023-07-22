@@ -17,28 +17,51 @@ import (
 type StockData struct {
 	StockCode string  `json:"stockCode"`
 	Price     float64 `json:"price"`
-	// Include other relevant stock data fields
 }
 
 var natsclient *nats.Conn
 
 func main() {
 	var err error
-	// Bind the handler function to the "/get-stock-data" endpoint.
-	http.HandleFunc("/get-stock-data", getStockDataHandler)
-	// Start the HTTP server on port 3000.
-	http.ListenAndServe(":3000", nil)
 	// Connect to a local NATS server
 	natsclient, err = nats.Connect(nats.DefaultURL)
 	if err != nil {
 		fmt.Println("Error connecting to NATS server: ", err)
 		return
 	}
-	http.HandleFunc("/get-stock-data", func(w http.ResponseWriter, r *http.Request) {
-		getStockDataHandler(w, r)
-	})
+
 	defer natsclient.Close()
 
+	// Subscribe to the stock_codes topic
+	_, err = natsclient.Subscribe("stock_codes", func(m *nats.Msg) {
+		// This function will be executed when a new message arrives on the "stock_codes" topic
+		stockCode := string(m.Data)
+
+		stockData, err := callStockAPI(stockCode)
+		if err != nil {
+			fmt.Println("Error getting stock data: ", err)
+			return
+		}
+
+		stockDataJSON, err := json.Marshal(stockData)
+		if err != nil {
+			fmt.Println("Error encoding stock data to JSON: ", err)
+			return
+		}
+
+		// Publish stock data to a NATS subject
+		natsclient.Publish("stock_data", stockDataJSON)
+	})
+
+	if err != nil {
+		fmt.Println("Error subscribing to stock_codes: ", err)
+		return
+	}
+
+	// Bind the handler function to the "/get-stock-data" endpoint.
+	http.HandleFunc("/get-stock-data", getStockDataHandler)
+	// Start the HTTP server on port 3000.
+	http.ListenAndServe(":3000", nil)
 }
 
 func getStockDataHandler(w http.ResponseWriter, r *http.Request) {
