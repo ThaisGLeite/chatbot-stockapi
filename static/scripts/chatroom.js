@@ -1,13 +1,18 @@
 // Check if user is logged in
-if (!localStorage.getItem("token")) {
+if (!sessionStorage.getItem("token")) {
   // If not, redirect to login page
   window.location.href = "login.html";
+} else {
+  // Get chatroom ID and append it to the title
+  var chatroomID = sessionStorage.getItem("chatroomID");
+  $("#chatroom-title").text("Chatroom: " + chatroomID);
 }
 
 $("#send-button").click(function () {
+  console.log("clicked the send button");
   var message = $("#message-input").val();
-  var chatroomID = localStorage.getItem("chatroomID"); // retrieve chatroomID from localStorage
-  var username = localStorage.getItem("username"); // retrieve username from localStorage
+  var chatroomID = sessionStorage.getItem("chatroomID"); // retrieve chatroomID from sessionStorage
+  var username = sessionStorage.getItem("username"); // retrieve username from sessionStorage
   $.post("/sendMessage", {
     chatroomID: chatroomID,
     username: username,
@@ -22,7 +27,7 @@ $("#send-button").click(function () {
 });
 
 $("#receive-button").click(function () {
-  var chatroomID = localStorage.getItem("chatroomID"); // retrieve chatroomID from localStorage
+  var chatroomID = sessionStorage.getItem("chatroomID"); // retrieve chatroomID from sessionStorage
   $.post("/retrieveMessages", { chatroomID: chatroomID })
     .done(function (messages) {
       // Split the messages string into an array of individual messages
@@ -42,8 +47,3 @@ $("#receive-button").click(function () {
       alert("Error retrieving messages");
     });
 });
-
-window.onbeforeunload = function () {
-  localStorage.removeItem("token");
-  localStorage.removeItem("chatroomID");
-};

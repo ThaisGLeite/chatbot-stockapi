@@ -22,8 +22,8 @@ document
       }
 
       response.text().then(function (token) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("username", username); // Save username in local storage
+        sessionStorage.setItem("token", token);
+        sessionStorage.setItem("username", username); // Save username in session storage
         window.location.href = "createOrEnterChatroom.html";
       });
     });

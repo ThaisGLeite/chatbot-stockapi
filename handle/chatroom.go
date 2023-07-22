@@ -47,7 +47,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		message := r.FormValue("message")
 
 		// Store message in chatroom
-		err := redis.StoreChatroomMessage(chatroomID, username, message)
+		err := redis.StoreMessageInChatroom(chatroomID, username, message)
 		if err != nil {
 			http.Error(w, "Error sending message", http.StatusInternalServerError)
 			return

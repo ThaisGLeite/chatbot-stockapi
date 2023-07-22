@@ -1,6 +1,7 @@
 // Check if user is logged in
-if (!localStorage.getItem("token")) {
+if (!sessionStorage.getItem("token")) {
   // If not, redirect to login page
+  console.log("User not logged in");
   window.location.href = "login.html";
 }
 
@@ -11,8 +12,8 @@ $(document).ready(function () {
       .done(function (chatroomId) {
         alert("Chatroom created with ID: " + chatroomId);
 
-        // Save chatroom ID in local storage
-        localStorage.setItem("chatroomID", chatroomId);
+        // Save chatroom ID in session storage
+        sessionStorage.setItem("chatroomID", chatroomId);
 
         // Redirect to chatroom.html
         window.location.href = "chatroom.html";
@@ -26,8 +27,8 @@ $(document).ready(function () {
 $("#enter-chatroom-button").click(function () {
   var chatroomID = $("#chatroom-input").val();
   if (chatroomID) {
-    // Save chatroom ID in local storage
-    localStorage.setItem("chatroomID", chatroomID);
+    // Save chatroom ID in session storage
+    sessionStorage.setItem("chatroomID", chatroomID);
 
     // Redirect to chatroom.html
     window.location.href = "chatroom.html";
