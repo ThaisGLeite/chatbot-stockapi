@@ -1,9 +1,13 @@
 package redis
 
 import (
+	"chatbot/model"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -25,19 +29,45 @@ func InitializeRedisClient() {
 
 // Store message in chatroom
 func StoreMessageInChatroom(chatroomID string, username string, message string) error {
-	// Prepare message with sender
-	messageWithSender := fmt.Sprintf(`{ "username": "%s", "message": "%s" }`, username, message)
+	// Prepare message with sender and timestamp
+	timestamp := time.Now().Unix()
+	messageWithSender := fmt.Sprintf(`{ "username": "%s", "message": "%s", "timestamp": %d }`, username, message, timestamp)
 
 	// Append the message to the list of messages in this chatroom
 	err := redisClient.RPush(context.Background(), chatroomID, messageWithSender).Err()
+	if err != nil {
+		return err
+	}
+
+	// Limit the list to the last 50 messages
+	err = redisClient.LTrim(context.Background(), chatroomID, -50, -1).Err()
 	return err
 }
 
 // Retrieve all messages from a chatroom
-func RetrieveChatroomMessages(chatroomID string) ([]string, error) {
+func RetrieveChatroomMessages(chatroomID string) ([]model.ChatMessage, error) {
 	// Get all messages from this chatroom
 	messagesWithSenders, err := redisClient.LRange(context.Background(), chatroomID, 0, -1).Result()
-	return messagesWithSenders, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the messages into ChatMessage structs and sort them by timestamp
+	var messages []model.ChatMessage
+	for _, messageWithSender := range messagesWithSenders {
+		var msg model.ChatMessage
+		err := json.Unmarshal([]byte(messageWithSender), &msg)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].Timestamp < messages[j].Timestamp
+	})
+
+	return messages, nil
 }
 
 func StoreUserData(username string, hashedPassword string) error {

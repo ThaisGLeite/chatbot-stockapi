@@ -2,9 +2,9 @@ package handle
 
 import (
 	"chatbot/redis"
+	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 // Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
@@ -74,11 +74,15 @@ func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Convert the slice of messages to a single string with each message on a new line
-		messagesString := strings.Join(messages, "\n")
+		// Convert the slice of messages to JSON
+		messagesJson, err := json.Marshal(messages)
+		if err != nil {
+			http.Error(w, "Error converting messages to JSON", http.StatusInternalServerError)
+			return
+		}
 
 		// Write the messages to the response
-		w.Write([]byte(messagesString))
+		w.Write(messagesJson)
 		return
 	}
 

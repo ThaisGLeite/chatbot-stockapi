@@ -30,16 +30,26 @@ $("#receive-button").click(function () {
   var chatroomID = sessionStorage.getItem("chatroomID"); // retrieve chatroomID from sessionStorage
   $.post("/retrieveMessages", { chatroomID: chatroomID })
     .done(function (messages) {
-      // Split the messages string into an array of individual messages
-      var messagesArray = messages.split("\n");
+      // Parse the JSON response
+      var messagesArray = JSON.parse(messages);
 
       // Clear the chat room
       $("#chat-room").empty();
 
       // Append each message to the chat room
       for (var i = 0; i < messagesArray.length; i++) {
+        var messageTime = new Date(
+          messagesArray[i].timestamp * 1000
+        ).toLocaleString();
+        // Convert the timestamp to milliseconds and then to a local date/time string
         $("#chat-room").append(
-          '<p class="chat-message">' + messagesArray[i] + "</p>"
+          '<p class="chat-message">' +
+            messageTime +
+            " - " +
+            messagesArray[i].username +
+            ": " +
+            messagesArray[i].message +
+            "</p>"
         );
       }
     })
