@@ -18,6 +18,33 @@ import (
 // Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
 var chatroomCounter int64
 
+// CheckChatroomExistHandler checks if a chatroom exists
+func CheckChatroomExistHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		// Parse form data
+		r.ParseForm()
+
+		chatroomName := r.FormValue("chatroomName")
+
+		// Check if chatroom exists in Redis
+		exists, err := redis.CheckChatroomExist(chatroomName)
+		if err != nil {
+			http.Error(w, "Error checking chatroom existence", http.StatusInternalServerError)
+			fmt.Println("Error checking chatroom existence", err)
+			return
+		}
+
+		// Return the result
+		if exists {
+			fmt.Fprint(w, "true")
+		} else {
+			fmt.Fprint(w, "false")
+		}
+	} else {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	}
+}
+
 // CreateChatroomHandler handles chatroom creation requests
 func CreateChatroomHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
@@ -183,6 +210,5 @@ func ListenStockData() {
 		}
 
 		natsclient.Client.Flush()
-		fmt.Println("Er")
 	}
 }

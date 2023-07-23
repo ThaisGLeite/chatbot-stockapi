@@ -27,6 +27,12 @@ func InitializeRedisClient() {
 	}
 }
 
+// Check if chatroomName exists in Redis Set
+func CheckChatroomExist(chatroomName string) (bool, error) {
+	exists, err := redisClient.SIsMember(context.Background(), "chatrooms", chatroomName).Result()
+	return exists, err
+}
+
 // Store message in chatroom
 func StoreMessageInChatroom(chatroomID string, username string, message string) error {
 	// Prepare message with sender and timestamp

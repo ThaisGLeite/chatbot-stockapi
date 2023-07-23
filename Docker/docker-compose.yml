@@ -5,9 +5,9 @@ services:
       - NATS_URL=nats://nats:4222
     build:
       context: ../
-      dockerfile: Docker/Dockerfile-BotService
+      dockerfile: Docker/Dockerfile.BotService
     ports:
-      - "8080:8080"
+      - "3000:3000"
     depends_on:
       - redis
       - nats
@@ -15,14 +15,18 @@ services:
       - mynetwork
 
   redis:
-    image: redis:latest
+    build:
+      context: ../
+      dockerfile: Docker/Dockerfile.Redis
     ports:
       - "6379:6379"
     networks:
       - mynetwork
 
   nats:
-    image: nats:latest
+    build:
+      context: ../
+      dockerfile: Docker/Dockerfile.NATS
     ports:
       - "4222:4222"
     networks:

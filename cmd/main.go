@@ -38,10 +38,12 @@ func main() {
 	http.HandleFunc("/sendMessage", handle.SendMessageHandler)
 	http.HandleFunc("/retrieveMessages", handle.RetrieveMessagesHandler)
 	http.HandleFunc("/getAllChatrooms", handle.GetAllChatroomsHandler)
+	http.HandleFunc("/checkChatroomExist", handle.CheckChatroomExistHandler)
 	http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
+	fmt.Println("Server stopped")
 	defer natsclient.Close()
 	defer redis.Close()
 }

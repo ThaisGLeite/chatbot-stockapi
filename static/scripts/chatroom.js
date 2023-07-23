@@ -3,32 +3,41 @@ if (!sessionStorage.getItem("token")) {
   // If not, redirect to login page
   window.location.href = "login.html";
 } else {
-  // Get chatroom ID and append it to the title
-  var chatroomID = sessionStorage.getItem("chatroomID");
-  $("#chatroom-title").text("Chatroom: " + chatroomID);
+  // Get chatroom name and append it to the title
+  var chatroomName = sessionStorage.getItem("chatroomName");
+  if (chatroomName) {
+    $("#chatroom-title").text("Chatroom: " + chatroomName);
+  } else {
+    console.error("No chatroomName found in sessionStorage");
+  }
 }
 
 $("#send-button").click(function () {
   console.log("clicked the send button");
   var message = $("#message-input").val();
-  var chatroomID = sessionStorage.getItem("chatroomID"); // retrieve chatroomID from sessionStorage
+  var chatroomName = sessionStorage.getItem("chatroomName"); // retrieve chatroomName from sessionStorage
   var username = sessionStorage.getItem("username"); // retrieve username from sessionStorage
+
   $.post("/sendMessage", {
-    chatroomID: chatroomID,
+    chatroomName: chatroomName,
     username: username,
     message: message,
   })
     .done(function () {
-      // message sent
+      // message sent successfully, clear the input field
+      $("#message-input").val("");
+
+      // retrieve the latest messages automatically
+      retrieveMessages();
     })
     .fail(function () {
       alert("Error sending message");
     });
 });
 
-$("#receive-button").click(function () {
-  var chatroomID = sessionStorage.getItem("chatroomID"); // retrieve chatroomID from sessionStorage
-  $.post("/retrieveMessages", { chatroomID: chatroomID })
+function retrieveMessages() {
+  var chatroomName = sessionStorage.getItem("chatroomName"); // retrieve chatroomName from sessionStorage
+  $.post("/retrieveMessages", { chatroomName: chatroomName })
     .done(function (messages) {
       // Parse the JSON response
       var messagesArray = JSON.parse(messages);
@@ -56,4 +65,7 @@ $("#receive-button").click(function () {
     .fail(function () {
       alert("Error retrieving messages");
     });
-});
+}
+
+// Call retrieveMessages when the receive button is clicked
+$("#receive-button").click(retrieveMessages);
