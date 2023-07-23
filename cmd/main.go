@@ -7,16 +7,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	// Connect to the NATS server
 	natsclient.Connect()
 	if !natsclient.Client.IsConnected() {
@@ -39,11 +32,12 @@ func main() {
 	http.HandleFunc("/retrieveMessages", handle.RetrieveMessagesHandler)
 	http.HandleFunc("/getAllChatrooms", handle.GetAllChatroomsHandler)
 	http.HandleFunc("/checkChatroomExist", handle.CheckChatroomExistHandler)
-	http.ListenAndServe(":8080", nil)
-	if err != nil {
+
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Println(err)
+		fmt.Println("Server stopped")
+		defer natsclient.Close()
+		defer redis.Close()
+		log.Fatalf("Failed to start server: %s", err.Error())
 	}
-	fmt.Println("Server stopped")
-	defer natsclient.Close()
-	defer redis.Close()
 }

@@ -32,5 +32,24 @@ services:
     networks:
       - mynetwork
 
+  chatroom:
+    build:
+      context: ../
+      dockerfile: Docker/Dockerfile.Chatroom
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - nats
+      - botservice
+    networks:
+      - mynetwork
+    environment:
+      - REDIS_URL=redis:6379
+      - REDIS_USERNAME=thais
+      - REDIS_PASSWORD=algodao11
+      - NATS_URL=nats://nats:4222
+      - JWT_KEY=3Iz842$5nbJ&qSggu4RL
+
 networks:
   mynetwork:

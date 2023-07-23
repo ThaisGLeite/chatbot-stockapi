@@ -6,13 +6,9 @@ import (
 	"chatbot/redis"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/nats-io/nats.go"
 )
 
 // Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
@@ -94,7 +90,6 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Error marshalling stock request", err)
 				return
 			}
-
 			// Post the stock code to a NATS queue
 			natsclient.Client.Publish("stock_codes", requestBytes)
 			natsclient.Client.Flush()
@@ -178,37 +173,4 @@ func GetAllChatroomsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(chatroomsJson)
-}
-
-func ListenStockData() {
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		_, err := natsclient.Client.Subscribe("stock_data", func(m *nats.Msg) {
-			var stockData model.StockData
-			err := json.Unmarshal(m.Data, &stockData)
-			if err != nil {
-				fmt.Println("Error unmarshalling stock data: ", err)
-				return
-			}
-			fmt.Println("Er")
-			// Create message in the required format
-			stockData.StockCode = strings.ToUpper(stockData.StockCode)
-			botMessage := fmt.Sprintf("%s quote is $%.2f per share", stockData.StockCode, stockData.Price)
-
-			// Store the bot's message in the specific chatroom
-			err = redis.StoreMessageInChatroom(stockData.ChatroomName, "Bot", botMessage)
-			if err != nil {
-				fmt.Println("Error storing message in chatroom: ", err)
-				return
-			}
-		})
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		natsclient.Client.Flush()
-	}
 }

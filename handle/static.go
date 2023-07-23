@@ -5,6 +5,6 @@ import (
 )
 
 func StaticFilesHandler() {
-	fs := http.FileServer(http.Dir("../static"))
+	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fs)
 }
