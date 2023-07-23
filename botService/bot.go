@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -15,8 +16,9 @@ import (
 )
 
 type StockData struct {
-	StockCode string  `json:"stockCode"`
-	Price     float64 `json:"price"`
+	StockCode  string  `json:"stockCode"`
+	Price      float64 `json:"price"`
+	ChatroomID string  `json:"chatroomID"`
 }
 
 var natsclient *nats.Conn
@@ -24,24 +26,35 @@ var natsclient *nats.Conn
 func main() {
 	var err error
 	// Connect to a local NATS server
-	natsclient, err = nats.Connect(nats.DefaultURL)
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = nats.DefaultURL // Use the default URL if none is provided
+	}
+	natsclient, err = nats.Connect(natsURL)
 	if err != nil {
 		fmt.Println("Error connecting to NATS server: ", err)
 		return
 	}
-
 	defer natsclient.Close()
 
 	// Subscribe to the stock_codes topic
 	_, err = natsclient.Subscribe("stock_codes", func(m *nats.Msg) {
-		// This function will be executed when a new message arrives on the "stock_codes" topic
-		stockCode := string(m.Data)
+		// Unmarshal the stock request from the message
+		var stockDataMessage StockData
+		err := json.Unmarshal(m.Data, &stockDataMessage)
+		if err != nil {
+			fmt.Println("Error unmarshalling stock request: ", err)
+			return
+		}
 
-		stockData, err := callStockAPI(stockCode)
+		stockData, err := callStockAPI(stockDataMessage.StockCode, stockDataMessage.ChatroomID)
 		if err != nil {
 			fmt.Println("Error getting stock data: ", err)
 			return
 		}
+
+		// Add chatroomID to the stockData
+		stockData.ChatroomID = stockDataMessage.ChatroomID
 
 		stockDataJSON, err := json.Marshal(stockData)
 		if err != nil {
@@ -49,8 +62,8 @@ func main() {
 			return
 		}
 
-		// Publish stock data to a NATS subject
-		natsclient.Publish("stock_data", stockDataJSON)
+		// Publish stock data to a NATS subject including the chatroomID
+		natsclient.Publish("stock_data."+stockData.ChatroomID, stockDataJSON)
 	})
 
 	if err != nil {
@@ -58,6 +71,8 @@ func main() {
 		return
 	}
 
+	// Start server
+	fmt.Println("Starting server at port 3000")
 	// Bind the handler function to the "/get-stock-data" endpoint.
 	http.HandleFunc("/get-stock-data", getStockDataHandler)
 	// Start the HTTP server on port 3000.
@@ -66,13 +81,14 @@ func main() {
 
 func getStockDataHandler(w http.ResponseWriter, r *http.Request) {
 	stockCode := r.URL.Query().Get("stock_code")
+	chatroomID := r.URL.Query().Get("chatroom_id")
 	if stockCode == "" {
 		http.Error(w, "Missing stock_code", http.StatusBadRequest)
 		fmt.Println("Missing stock_code")
 		return
 	}
 
-	stockData, err := callStockAPI(stockCode)
+	stockData, err := callStockAPI(stockCode, chatroomID)
 	if err != nil {
 		http.Error(w, "Error getting stock data", http.StatusInternalServerError)
 		fmt.Println("Error getting stock data: ", err)
@@ -92,7 +108,7 @@ func getStockDataHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(stockData)
 }
 
-func callStockAPI(stockCode string) (*StockData, error) {
+func callStockAPI(stockCode string, chatroomID string) (*StockData, error) {
 	// Make a GET request to the stock API.
 	resp, err := http.Get(fmt.Sprintf("https://stooq.com/q/l/?s=%s&f=sd2t2ohlcv&h&e=csv", stockCode))
 	if err != nil {
@@ -124,7 +140,7 @@ func callStockAPI(stockCode string) (*StockData, error) {
 		return nil, err
 	}
 	// Return the stock data.
-	return &StockData{StockCode: stockCode, Price: price}, nil
+	return &StockData{StockCode: stockCode, Price: price, ChatroomID: chatroomID}, nil
 }
 
 func parseCSV(records [][]string) (float64, error) {
