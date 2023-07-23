@@ -29,6 +29,8 @@ func main() {
 	// Run in a goroutine
 	go handle.ListenStockData()
 
+	fmt.Println("Server started on port 8080")
+
 	handle.StaticFilesHandler()
 	http.HandleFunc("/login", handle.LoginHandler)
 	http.HandleFunc("/register", handle.RegisterHandler)
