@@ -4,11 +4,25 @@ FROM redis:latest
 # Define working directory
 WORKDIR /data
 
-# Copy the script that sets up the user and password
-COPY ../cmd/shell/setup-redis.sh /setup-redis.sh
+# Create necessary directories
+RUN mkdir -p /usr/local/etc/redis
 
-# Make the script executable
-RUN chmod +x /setup-redis.sh
+# Create a configuration file for Redis
+RUN echo "\
+    daemonize no\n\
+    protected-mode no\n\
+    aclfile /usr/local/etc/redis/users.acl\n\
+    appendonly yes\n\
+    " > /usr/local/etc/redis/redis.conf
 
-# Run the setup script
-CMD ["/bin/bash", "-c", "/setup-redis.sh"]
+# Create the ACL file
+RUN echo "\
+    user thais on ~* +@write +@read +@connection +@pubsub +object|help >algodao11\n\
+    " > /usr/local/etc/redis/users.acl
+
+# Copy the setup script if additional setup is required
+# COPY setup-redis.sh /setup-redis.sh
+# RUN chmod +x /setup-redis.sh
+
+# Start Redis with the new configuration file
+CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]

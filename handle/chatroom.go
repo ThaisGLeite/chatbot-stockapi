@@ -78,7 +78,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		// Parse form data
 		r.ParseForm()
 
-		chatroomID := r.FormValue("chatroomID")
+		chatroomName := r.FormValue("chatroomName")
 		username := r.FormValue("username")
 		message := r.FormValue("message")
 
@@ -86,8 +86,8 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(message, "/stock=") {
 			stockCode := strings.TrimPrefix(message, "/stock=")
 			stockRequest := model.StockData{
-				StockCode:  stockCode,
-				ChatroomID: chatroomID,
+				StockCode:    stockCode,
+				ChatroomName: chatroomName,
 			}
 			requestBytes, err := json.Marshal(stockRequest)
 			if err != nil {
@@ -108,7 +108,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Store message in chatroom
-		err := redis.StoreMessageInChatroom(chatroomID, username, message)
+		err := redis.StoreMessageInChatroom(chatroomName, username, message)
 		if err != nil {
 			http.Error(w, "Error sending message", http.StatusInternalServerError)
 			fmt.Println("Error sending message", err)
@@ -127,10 +127,10 @@ func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		// Parse form data
 		r.ParseForm()
 
-		chatroomID := r.FormValue("chatroomID")
+		chatroomName := r.FormValue("chatroomName")
 
 		// Retrieve all messages from the chatroom
-		messages, err := redis.RetrieveChatroomMessages(chatroomID)
+		messages, err := redis.RetrieveChatroomMessages(chatroomName)
 		if err != nil {
 			http.Error(w, "Error retrieving messages", http.StatusInternalServerError)
 			fmt.Println("Error retrieving messages", err)
@@ -198,7 +198,7 @@ func ListenStockData() {
 			botMessage := fmt.Sprintf("%s quote is $%.2f per share", stockData.StockCode, stockData.Price)
 
 			// Store the bot's message in the specific chatroom
-			err = redis.StoreMessageInChatroom(stockData.ChatroomID, "Bot", botMessage)
+			err = redis.StoreMessageInChatroom(stockData.ChatroomName, "Bot", botMessage)
 			if err != nil {
 				fmt.Println("Error storing message in chatroom: ", err)
 				return

@@ -4,8 +4,10 @@ import (
 	"chatbot/model"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"time"
 
@@ -14,9 +16,20 @@ import (
 
 var redisClient *redis.Client
 
+var (
+	ErrInvalidChatroomName = errors.New("invalid chatroom name")
+	ErrInvalidUsername     = errors.New("invalid username")
+	ErrInvalidMessage      = errors.New("invalid message")
+
+	chatroomNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	usernamePattern     = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	messagePattern      = regexp.MustCompile(`^[^<>]+$`) // Rejecting any HTML tags
+)
+
 func InitializeRedisClient() {
 	redisClient = redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_URL"),
+		Username: os.Getenv("REDIS_USERNAME"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0, // use default DB
 	})
@@ -33,36 +46,48 @@ func CheckChatroomExist(chatroomName string) (bool, error) {
 	return exists, err
 }
 
-// Store message in chatroom
-func StoreMessageInChatroom(chatroomID string, username string, message string) error {
+// StoreMessageInChatroom stores a message in the specified chatroom
+func StoreMessageInChatroom(chatroomName string, username string, message string) error {
+	// Validate inputs
+	if !chatroomNamePattern.MatchString(chatroomName) {
+		return ErrInvalidChatroomName
+	}
+	if !usernamePattern.MatchString(username) {
+		return ErrInvalidUsername
+	}
+	if !messagePattern.MatchString(message) {
+		return ErrInvalidMessage
+	}
+
 	// Prepare message with sender and timestamp
 	timestamp := time.Now().Unix()
 	messageWithSender := fmt.Sprintf(`{ "username": "%s", "message": "%s", "timestamp": %d }`, username, message, timestamp)
 
 	// Append the message to the list of messages in this chatroom
-	err := redisClient.RPush(context.Background(), chatroomID, messageWithSender).Err()
+	err := redisClient.RPush(context.Background(), chatroomName, messageWithSender).Err()
 	if err != nil {
 		return err
 	}
 
 	// Limit the list to the last 50 messages
-	err = redisClient.LTrim(context.Background(), chatroomID, -50, -1).Err()
+	err = redisClient.LTrim(context.Background(), chatroomName, -50, -1).Err()
 	return err
 }
 
 // Store stock data in chatroom
-func StoreStockDataInChatroom(chatroomID string, stockData model.StockData) error {
+func StoreStockDataInChatroom(chatroomName string, stockData model.StockData) error {
 	// Prepare stock data message
 	stockDataMessage := fmt.Sprintf("Stock code: %s, price: %f", stockData.StockCode, stockData.Price)
 
 	// Store stock data as a message in the chatroom
-	return StoreMessageInChatroom(chatroomID, "Bot", stockDataMessage)
+	return StoreMessageInChatroom(chatroomName, "Bot", stockDataMessage)
 }
 
 // Retrieve all messages from a chatroom
-func RetrieveChatroomMessages(chatroomID string) ([]model.ChatMessage, error) {
+func RetrieveChatroomMessages(chatroomName string) ([]model.ChatMessage, error) {
 	// Get all messages from this chatroom
-	messagesWithSenders, err := redisClient.LRange(context.Background(), chatroomID, 0, -1).Result()
+
+	messagesWithSenders, err := redisClient.LRange(context.Background(), chatroomName, 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +106,6 @@ func RetrieveChatroomMessages(chatroomID string) ([]model.ChatMessage, error) {
 	sort.Slice(messages, func(i, j int) bool {
 		return messages[i].Timestamp < messages[j].Timestamp
 	})
-
 	return messages, nil
 }
 
@@ -99,12 +123,12 @@ func StoreChatroomData(chatroomName string) error {
 }
 
 // StoreChatroomMessage stores a user's message in a chatroom
-func StoreChatroomMessage(chatroomID string, username string, message string) error {
+func StoreChatroomMessage(chatroomName string, username string, message string) error {
 	// Prepare the message to store username along with the message
 	messageToStore := username + ": " + message
 
 	// Append the message to the list of messages in this chatroom
-	err := redisClient.RPush(context.Background(), chatroomID, messageToStore).Err()
+	err := redisClient.RPush(context.Background(), chatroomName, messageToStore).Err()
 	return err
 }
 

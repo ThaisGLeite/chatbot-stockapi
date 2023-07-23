@@ -15,10 +15,11 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+// Define a struct to hold stock data
 type StockData struct {
-	StockCode  string  `json:"stockCode"`
-	Price      float64 `json:"price"`
-	ChatroomID string  `json:"chatroomID"`
+	StockCode    string  `json:"stockCode"`
+	Price        float64 `json:"price"`
+	ChatroomName string  `json:"chatroom_name"`
 }
 
 var natsclient *nats.Conn
@@ -47,14 +48,14 @@ func main() {
 			return
 		}
 
-		stockData, err := callStockAPI(stockDataMessage.StockCode, stockDataMessage.ChatroomID)
+		stockData, err := callStockAPI(stockDataMessage.StockCode, stockDataMessage.ChatroomName)
 		if err != nil {
 			fmt.Println("Error getting stock data: ", err)
 			return
 		}
 
 		// Add chatroomID to the stockData
-		stockData.ChatroomID = stockDataMessage.ChatroomID
+		stockData.ChatroomName = stockDataMessage.ChatroomName
 
 		stockDataJSON, err := json.Marshal(stockData)
 		if err != nil {
@@ -63,7 +64,7 @@ func main() {
 		}
 
 		// Publish stock data to a NATS subject including the chatroomID
-		natsclient.Publish("stock_data."+stockData.ChatroomID, stockDataJSON)
+		natsclient.Publish("stock_data."+stockData.ChatroomName, stockDataJSON)
 	})
 
 	if err != nil {
@@ -108,7 +109,7 @@ func getStockDataHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(stockData)
 }
 
-func callStockAPI(stockCode string, chatroomID string) (*StockData, error) {
+func callStockAPI(stockCode string, chatroomName string) (*StockData, error) {
 	// Make a GET request to the stock API.
 	resp, err := http.Get(fmt.Sprintf("https://stooq.com/q/l/?s=%s&f=sd2t2ohlcv&h&e=csv", stockCode))
 	if err != nil {
@@ -140,7 +141,7 @@ func callStockAPI(stockCode string, chatroomID string) (*StockData, error) {
 		return nil, err
 	}
 	// Return the stock data.
-	return &StockData{StockCode: stockCode, Price: price, ChatroomID: chatroomID}, nil
+	return &StockData{StockCode: stockCode, Price: price, ChatroomName: chatroomName}, nil
 }
 
 func parseCSV(records [][]string) (float64, error) {

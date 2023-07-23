@@ -2,6 +2,7 @@ package handle
 
 import (
 	"chatbot/redis"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -69,6 +70,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			http.Error(w, "Error hashing password", http.StatusInternalServerError)
+			fmt.Println("Error hashing password", err)
 			return
 		}
 
@@ -76,6 +78,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		err = redis.StoreUserData(username, string(hashedPassword))
 		if err != nil {
 			http.Error(w, "Error storing data in Redis", http.StatusInternalServerError)
+			fmt.Println("Error storing data in Redis", err)
 			return
 		}
 

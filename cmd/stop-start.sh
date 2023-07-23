@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Navigate to the directory containing the docker-compose file
-cd "$(dirname "$0")/../../Docker"
+cd "$(dirname "$0")/../Docker"
 
 # Stop any running containers
 docker-compose down
