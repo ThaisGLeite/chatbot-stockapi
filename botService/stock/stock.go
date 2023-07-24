@@ -30,7 +30,9 @@ func NewStockDataHandler(nc *natsclient.NATSClient) *StockDataHandler {
 	return &StockDataHandler{natsClient: nc}
 }
 
+// HandleRequest handles the stock request from the chatroom.
 func (sdh *StockDataHandler) HandleRequest(m *nats.Msg) {
+	// Unmarshal the stock request.
 	var stockDataMessage StockData
 	err := json.Unmarshal(m.Data, &stockDataMessage)
 	if err != nil {
@@ -38,21 +40,28 @@ func (sdh *StockDataHandler) HandleRequest(m *nats.Msg) {
 		return
 	}
 
+	// Get the stock data from the API
 	stockData, err := callStockAPI(stockDataMessage.StockCode)
 	if err != nil {
 		fmt.Println("Error getting stock data: ", err)
 		return
 	}
 
+	// Set the chatroom name on the stock data and marshal it to JSON.
 	stockData.ChatroomName = stockDataMessage.ChatroomName
-
 	stockDataJSON, err := json.Marshal(stockData)
 	if err != nil {
 		fmt.Println("Error encoding stock data to JSON: ", err)
 		return
 	}
+
 	fmt.Println("Sending stock data: ", string(stockDataJSON))
-	sdh.natsClient.Publish("stock_data."+stockDataMessage.ChatroomName, stockDataJSON)
+	// Publish the stock data to the stock data subject.
+	err = sdh.natsClient.Publish("stock_data", stockDataJSON)
+	if err != nil {
+		fmt.Println("Error publishing stock data: ", err)
+		return
+	}
 }
 
 func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *http.Request) {

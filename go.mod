@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/joho/godotenv v1.5.1
 	github.com/nats-io/nats.go v1.28.0
 	golang.org/x/crypto v0.9.0
 )

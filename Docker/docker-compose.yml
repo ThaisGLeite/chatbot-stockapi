@@ -29,6 +29,7 @@ services:
       dockerfile: Docker/Dockerfile.NATS
     ports:
       - "4222:4222"
+      - "8222:8222"
     networks:
       - mynetwork
 
