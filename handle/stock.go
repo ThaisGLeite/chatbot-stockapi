@@ -9,7 +9,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/gorilla/websocket"
 	"github.com/nats-io/nats.go"
 )
 
@@ -34,7 +33,7 @@ func getStock(m *nats.Msg) {
 	err := json.Unmarshal(m.Data, &stockData)
 	if err != nil {
 		fmt.Println("Error unmarshalling stock data: ", err)
-		ws.Conn.WriteMessage(websocket.TextMessage, []byte(m.Data))
+		ws.BroadcastMessage(m.Data)
 		return
 	}
 
@@ -44,14 +43,10 @@ func getStock(m *nats.Msg) {
 	fmt.Println("Stock data: ", botMessage)
 
 	// Send message to WebSocket
-	if err := ws.Conn.WriteMessage(websocket.TextMessage, []byte(botMessage)); err != nil {
-		fmt.Println("Error sending message to WebSocket:", err)
-	}
+	ws.BroadcastMessage([]byte(botMessage))
 }
 
 func getErro(m *nats.Msg) {
 	// Send message to WebSocket
-	if err := ws.Conn.WriteMessage(websocket.TextMessage, []byte(m.Data)); err != nil {
-		fmt.Println("Error from botservices:", err)
-	}
+	ws.BroadcastMessage(m.Data)
 }

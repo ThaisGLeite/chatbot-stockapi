@@ -40,6 +40,12 @@ $(document).ready(function () {
   $("#create-chatroom-button").click(function () {
     var chatroomName = $("#chatroom-input").val();
 
+    // Validate chatroomName, do not allow it to be empty
+    if (!chatroomName || chatroomName.trim() === "") {
+      alert("Chatroom name cannot be empty");
+      return;
+    }
+
     // Check if chatroomName already exists
     $.post("/checkChatroomExist", { chatroomName: chatroomName })
       .done(function (exists) {
