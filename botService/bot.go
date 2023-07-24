@@ -1,36 +1,59 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"os"
-
 	"botService/natsclient"
 	"botService/stock"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
+var logger *logrus.Logger
+
+// Initialize services
+func InitializeServices(nc natsclient.NATSClientInterface, sdh stock.StockDataHandlerInterface) error {
+	// Subscribe to stock_codes subject
+	if _, err := nc.Subscribe("stock_codes", sdh.HandleRequest); err != nil {
+		return err
+	}
+
+	logger.Info("Bot service initialized")
+
+	return nil
+}
+
 func main() {
+	// Create logger
+	logger = logrus.New()
 	// Connect to NATS server
-	natsClient, err := natsclient.NewNATSClient(os.Getenv("NATS_URL"))
+	natsURL := os.Getenv("NATS_URL")
+	opt := natsclient.ConnectionOptions{
+		URL:            natsURL,
+		ReconnectDelay: 5 * time.Second,
+		MaxReconnects:  3,
+	}
+
+	natsClient, err := natsclient.NewNATSClient(opt)
 	if err != nil {
-		fmt.Println("Error connecting to NATS server: ", err)
-		os.Exit(1)
+		logger.Fatalf("Server could not be started: %v", err)
 	}
 	defer natsClient.Close()
 
 	// Create stock data handler
-	stockDataHandler := stock.NewStockDataHandler(natsClient)
+	stockDataHandler := stock.NewStockDataHandler(natsClient, logger, os.Getenv("API_URL"))
 
-	// Subscribe to stock_codes subject
-	_, err = natsClient.Subscribe("stock_codes", stockDataHandler.HandleRequest)
-	if err != nil {
-		fmt.Println("Error subscribing to stock_codes: ", err)
-		os.Exit(1)
+	// Initialize services
+	if err := InitializeServices(natsClient, stockDataHandler); err != nil {
+		logger.Fatalf("Server could not be started: %v", err)
 	}
 
-	fmt.Println("Bot service started")
-
 	// Start HTTP server
+	porta := os.Getenv("SERVER_PORT")
 	http.HandleFunc("/get-stock-data", stockDataHandler.GetStockDataHTTPHandler)
-	http.ListenAndServe(":3000", nil)
+	err = http.ListenAndServe(porta, nil)
+	if err != nil {
+		logger.Fatalf("Failed to start server: %v", err)
+	}
 }
