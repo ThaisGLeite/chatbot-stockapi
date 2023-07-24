@@ -12,6 +12,24 @@ if (!sessionStorage.getItem("token")) {
   }
 }
 
+// Open a WebSocket connection for stock info
+var ws = new WebSocket("ws://localhost:8080/getStock");
+
+ws.onmessage = function (event) {
+  console.log("Received message: " + event.data);
+  var stockInfo = event.data;
+  $("#stock-info").text(stockInfo);
+};
+
+ws.onerror = function (error) {
+  console.log("WebSocket Error: " + error);
+};
+
+// When you are done
+ws.onclose = function (event) {
+  console.log("WebSocket connection closed");
+};
+
 // Retrieve messages from the server
 $("#send-button").click(function () {
   var message = $("#message-input").val().trim(); // trim whitespace from beginning and end

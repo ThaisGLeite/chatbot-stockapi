@@ -32,18 +32,29 @@ func NewStockDataHandler(nc *natsclient.NATSClient) *StockDataHandler {
 
 // HandleRequest handles the stock request from the chatroom.
 func (sdh *StockDataHandler) HandleRequest(m *nats.Msg) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic in HandleRequest", r)
+			// handle error or send error message back
+		}
+	}()
+
 	// Unmarshal the stock request.
 	var stockDataMessage StockData
 	err := json.Unmarshal(m.Data, &stockDataMessage)
 	if err != nil {
-		fmt.Println("Error unmarshalling stock request: ", err)
+		errorMessage := fmt.Sprintf("Error unmarshalling stock request: %v", err)
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
 
 	// Get the stock data from the API
 	stockData, err := callStockAPI(stockDataMessage.StockCode)
 	if err != nil {
-		fmt.Println("Error getting stock data: ", err)
+		errorMessage := fmt.Sprintf("Error getting stock data: %v", err)
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
 
@@ -51,32 +62,45 @@ func (sdh *StockDataHandler) HandleRequest(m *nats.Msg) {
 	stockData.ChatroomName = stockDataMessage.ChatroomName
 	stockDataJSON, err := json.Marshal(stockData)
 	if err != nil {
-		fmt.Println("Error encoding stock data to JSON: ", err)
+		errorMessage := fmt.Sprintf("Error encoding stock data to JSON: %v", err)
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
-
-	fmt.Println("Sending stock data: ", string(stockDataJSON))
 	// Publish the stock data to the stock data subject.
 	err = sdh.natsClient.Publish("stock_data", stockDataJSON)
 	if err != nil {
-		fmt.Println("Error publishing stock data: ", err)
+		errorMessage := fmt.Sprintf("Error publishing stock data: %v", err)
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
 }
 
 func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic in GetStockDataHTTPHandler", r)
+			// handle error or send error message back
+		}
+	}()
+
 	stockCode := r.URL.Query().Get("stock_code")
 	chatroomID := r.URL.Query().Get("chatroom_id")
 	if stockCode == "" {
 		http.Error(w, "Missing stock_code", http.StatusBadRequest)
-		fmt.Println("Missing stock_code")
+		errorMessage := "Missing stock_code"
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
 
 	stockData, err := callStockAPI(stockCode)
 	if err != nil {
 		http.Error(w, "Error getting stock data", http.StatusInternalServerError)
-		fmt.Println("Error getting stock data: ", err)
+		errorMessage := fmt.Sprintf("Error getting stock data: %v", err)
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
 
@@ -85,7 +109,9 @@ func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *h
 	stockDataJSON, err := json.Marshal(stockData)
 	if err != nil {
 		http.Error(w, "Error encoding stock data to JSON", http.StatusInternalServerError)
-		fmt.Println("Error encoding stock data to JSON: ", err)
+		errorMessage := fmt.Sprintf("Error encoding stock data to JSON: %v", err)
+		fmt.Println(errorMessage)
+		sdh.natsClient.Publish("stock_errors", []byte(errorMessage))
 		return
 	}
 

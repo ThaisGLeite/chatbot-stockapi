@@ -4,6 +4,7 @@ import (
 	"chatbot/handle"
 	"chatbot/natsclient"
 	"chatbot/redis"
+	"chatbot/ws"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,8 +23,6 @@ func main() {
 	// Run in a goroutine
 	go handle.ListenStockData()
 
-	fmt.Println("Server started on port 8080")
-
 	handle.StaticFilesHandler()
 	http.HandleFunc("/login", handle.LoginHandler)
 	http.HandleFunc("/register", handle.RegisterHandler)
@@ -32,6 +31,7 @@ func main() {
 	http.HandleFunc("/retrieveMessages", handle.RetrieveMessagesHandler)
 	http.HandleFunc("/getAllChatrooms", handle.GetAllChatroomsHandler)
 	http.HandleFunc("/checkChatroomExist", handle.CheckChatroomExistHandler)
+	http.HandleFunc("/getStock", ws.Connect)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Println(err)
