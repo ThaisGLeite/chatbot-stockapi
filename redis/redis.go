@@ -26,6 +26,16 @@ var (
 	messagePattern      = regexp.MustCompile(`^[^<>]+$`) // Rejecting any HTML tags
 )
 
+type RedisUserDataStore struct{}
+
+func (r *RedisUserDataStore) GetHashedPassword(username string) (string, error) {
+	return GetHashedPassword(username)
+}
+
+func (r *RedisUserDataStore) StoreUserData(username, password string) error {
+	return StoreUserData(username, password)
+}
+
 // InitializeRedisClient creates a new Redis client and tests the connection
 func InitializeRedisClient(ctx context.Context) error {
 	redisClient = redis.NewClient(&redis.Options{

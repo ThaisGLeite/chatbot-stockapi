@@ -24,7 +24,7 @@ document
       response.text().then(function (token) {
         sessionStorage.setItem("token", token);
         sessionStorage.setItem("username", username); // Save username in session storage
-        window.location.href = "createOrEnterChatroom.html";
+        window.location.href = "create-or-enter-chatroom.html";
       });
     });
   });

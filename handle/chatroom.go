@@ -124,12 +124,10 @@ func publishToNATS(w http.ResponseWriter, request model.StockData) {
 		fmt.Println("Error marshalling stock request", err)
 		return
 	}
-	natsclient.Client.Publish("stock_codes", requestBytes)
-	natsclient.Client.Flush()
-
-	if err := natsclient.Client.LastError(); err != nil {
+	if err := natsclient.Client.Publish("stock_codes", requestBytes); err != nil {
 		respondWithError(w, "Error posting to NATS queue")
 		fmt.Println("Error posting to NATS queue", err)
+		return
 	}
 }
 

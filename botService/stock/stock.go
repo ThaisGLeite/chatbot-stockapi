@@ -19,7 +19,7 @@ import (
 
 // StockData represents the data for a particular stock
 type StockData struct {
-	StockCode    string  `json:"stockcode"`
+	StockCode    string  `json:"stock_code"`
 	Price        float64 `json:"price"`
 	ChatroomName string  `json:"chatroom_name"`
 }
@@ -154,7 +154,7 @@ func (sdh *StockDataHandler) FetchStockData(stockCode string) (*StockData, error
 	}
 
 	// Check that the CSV data is in the expected format.
-	if len(records) < 2 || len(records[1]) < 7 {
+	if len(records) < 2 || len(records[1]) < 8 {
 		return nil, errors.New("a problem ocurred while accessing the remote stock data. Please check the stock API")
 	}
 
@@ -182,7 +182,7 @@ func ParseCSV(records [][]string) (float64, error) {
 		}
 	}
 
-	priceStr := records[1][4] // Closing price is at index 4
+	priceStr := records[1][6] // Closing price is at index 6
 	price, err := strconv.ParseFloat(priceStr, 64)
 	if err != nil {
 		return 0, err

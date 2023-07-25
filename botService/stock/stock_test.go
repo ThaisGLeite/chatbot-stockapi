@@ -38,8 +38,8 @@ func TestHandleRequest(t *testing.T) {
 	mockClient.On("Publish", mock.Anything, mock.Anything).Return(nil)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`Date,Open,High,Low,Close,Volume,OpenInt
-2023-07-23,147.27,149.04,147.00,148.56,14077800,0`))
+		w.Write([]byte(`Symbol,Date,Time,Open,High,Low,Close,Volume
+AAPL.US,2023-07-23,22:00:10,147.27,149.04,147.00,148.56,14077800`))
 	}))
 	defer ts.Close()
 
@@ -61,8 +61,8 @@ func TestHandleRequest(t *testing.T) {
 
 func TestGetStockDataHTTPHandler(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`Date,Open,High,Low,Close,Volume,OpenInt
-2023-07-23,147.27,149.04,147.00,148.56,14077800,0`))
+		w.Write([]byte(`Symbol,Date,Time,Open,High,Low,Close,Volume
+AAPL.US,2023-07-23,22:00:10,147.27,149.04,147.00,148.56,14077800`))
 	}))
 	defer ts.Close()
 
@@ -73,7 +73,7 @@ func TestGetStockDataHTTPHandler(t *testing.T) {
 
 	handler := stock.NewStockDataHandler(mockClient, logger, ts.URL)
 
-	req, err := http.NewRequest("GET", "/?stock_code=AAPL&chatroom_id=room1", nil)
+	req, err := http.NewRequest("GET", "/?stock_code=AAPL&chatroom_name=room1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
