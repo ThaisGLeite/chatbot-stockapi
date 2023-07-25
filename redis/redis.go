@@ -39,7 +39,7 @@ func InitializeRedisClient(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to Redis: %w", err)
 	}
-	fmt.Println(pong)
+	fmt.Println("Redis client: Ping?", pong)
 
 	return nil
 }

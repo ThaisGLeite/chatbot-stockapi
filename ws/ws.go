@@ -46,18 +46,16 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	clients[chatroom][conn] = true
 	mutex.Unlock()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go handleMessages(ctx, conn, chatroom)
-	go func() {
-		<-ctx.Done()
-		DeleteClient(conn, chatroom)
-	}()
+	go handleMessages(conn, chatroom)
 }
 
 // handleMessages listens for new messages broadcast to our chatroom.
-func handleMessages(ctx context.Context, conn *websocket.Conn, chatroom string) {
+func handleMessages(conn *websocket.Conn, chatroom string) {
 	defer conn.Close()
+	defer DeleteClient(conn, chatroom)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for {
 		_, _, err := conn.ReadMessage()
@@ -65,6 +63,7 @@ func handleMessages(ctx context.Context, conn *websocket.Conn, chatroom string) 
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
+			cancel() // Cancel the context when an error occurs
 			break
 		}
 		select {
@@ -89,7 +88,13 @@ func DeleteClient(conn *websocket.Conn, chatroom string) {
 func BroadcastMessage(msg []byte, chatroom string) {
 	mutex.Lock()
 	defer mutex.Unlock()
-
+	log.Printf("Active chatrooms and clients:\n")
+	for chatroom, conns := range clients {
+		log.Printf("Chatroom %s:\n", chatroom)
+		for conn := range conns {
+			log.Printf("\tClient %v\n", conn.RemoteAddr())
+		}
+	}
 	if conns, ok := clients[chatroom]; ok {
 		for conn := range conns {
 			err := conn.WriteMessage(websocket.TextMessage, msg)

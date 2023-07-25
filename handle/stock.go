@@ -55,9 +55,7 @@ func getStock(m *nats.Msg) {
 
 func getError(m *nats.Msg) {
 	msgStr := string(m.Data)
-
 	msgParts := strings.SplitN(msgStr, " | ", 2)
-
 	if len(msgParts) < 2 {
 		log.Println("getError: received error message in unexpected format")
 		return

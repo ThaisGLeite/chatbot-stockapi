@@ -25,7 +25,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
-	redis.InitializeRedisClient(ctx)
 
 	// Listen to stock data and update redis cache with new data
 	ctx, cancel = context.WithCancel(context.Background())

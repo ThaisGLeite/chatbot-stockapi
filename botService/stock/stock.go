@@ -126,6 +126,7 @@ func (sdh *StockDataHandler) handleError(message string, chatroomName string, er
 func (sdh *StockDataHandler) handleHTTPError(w http.ResponseWriter, message string, statusCode int, chatroomName string, err error) {
 	http.Error(w, message, statusCode)
 	sdh.handleError(message, chatroomName, err)
+	fmt.Println("erro http:", message, chatroomName, err)
 }
 
 // fetchStockData fetches the stock data for a particular stock code
@@ -154,7 +155,7 @@ func (sdh *StockDataHandler) FetchStockData(stockCode string) (*StockData, error
 
 	// Check that the CSV data is in the expected format.
 	if len(records) < 2 || len(records[1]) < 7 {
-		return nil, errors.New("malformed CSV")
+		return nil, errors.New("a problem ocurred while accessing the remote stock data. Please check the stock API")
 	}
 
 	// Extract the closing price and convert it to a float.

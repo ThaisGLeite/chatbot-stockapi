@@ -19,6 +19,10 @@ var ws = new WebSocket(
     encodeURIComponent(chatroomName)
 );
 
+ws.onopen = function (event) {
+  console.log("WebSocket is open now.");
+};
+
 ws.onmessage = function (event) {
   console.log("Received message: " + event.data);
   var stockInfo = event.data;
