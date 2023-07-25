@@ -13,16 +13,15 @@ import (
 
 	natsclient "botService/natsclient"
 
-	"github.com/golang/mock/gomock"
 	"github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
 )
 
 // StockData represents the data for a particular stock
 type StockData struct {
-	StockCode    string  `json:"stockCode"`
+	StockCode    string  `json:"stockcode"`
 	Price        float64 `json:"price"`
-	ChatroomName string  `json:"chatroomName"`
+	ChatroomName string  `json:"chatroom_name"`
 }
 
 // StockDataHandler handles the stock data
@@ -34,18 +33,6 @@ type StockDataHandler struct {
 
 type StockDataHandlerInterface interface {
 	HandleRequest(m *nats.Msg)
-}
-
-type mockStockDataHandler struct {
-	StockDataHandlerInterface
-	mockCtrl          *gomock.Controller
-	HandleRequestFunc func(m *nats.Msg)
-}
-
-func newMockStockDataHandler(mockCtrl *gomock.Controller) *mockStockDataHandler {
-	return &mockStockDataHandler{
-		mockCtrl: mockCtrl,
-	}
 }
 
 // NewStockDataHandler creates a new StockDataHandler
@@ -82,6 +69,8 @@ func (sdh *StockDataHandler) HandleRequest(m *nats.Msg) {
 		sdh.handleError("Error publishing stock data", err, "stock_errors")
 		return
 	}
+
+	logrus.Info(stockData)
 }
 
 // GetStockDataHTTPHandler is the HTTP handler for fetching stock data
@@ -89,7 +78,7 @@ func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *h
 	defer sdh.recoverPanic("GetStockDataHTTPHandler")
 
 	stockCode := r.URL.Query().Get("stock_code")
-	chatroomID := r.URL.Query().Get("chatroom_id")
+	chatroomName := r.URL.Query().Get("chatroom_name")
 	if stockCode == "" {
 		sdh.handleHTTPError(w, "Missing stock_code", http.StatusBadRequest, "stock_errors")
 		return
@@ -101,7 +90,7 @@ func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	stockData.ChatroomName = chatroomID
+	stockData.ChatroomName = chatroomName
 
 	stockDataJSON, err := json.Marshal(stockData)
 	if err != nil {
@@ -140,8 +129,10 @@ func (sdh *StockDataHandler) handleHTTPError(w http.ResponseWriter, message stri
 
 // fetchStockData fetches the stock data for a particular stock code
 func (sdh *StockDataHandler) FetchStockData(stockCode string) (*StockData, error) {
+
 	// Make a GET request to the stock API.
-	resp, err := http.Get(fmt.Sprintf("%s/q/l/?s=%s&f=sd2t2ohlcv&h&e=csv", sdh.baseURL, stockCode))
+	url := fmt.Sprintf("%s/q/l/?s=%s&f=sd2t2ohlcv&h&e=csv", sdh.baseURL, stockCode)
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +165,7 @@ func (sdh *StockDataHandler) FetchStockData(stockCode string) (*StockData, error
 	return &StockData{StockCode: stockCode, Price: price}, nil
 }
 
+// ParseCSV parses the CSV data into a float64.
 func ParseCSV(records [][]string) (float64, error) {
 	for i, row := range records {
 		if i == 0 {

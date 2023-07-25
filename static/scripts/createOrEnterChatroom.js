@@ -39,6 +39,8 @@ $(document).ready(function () {
 
   $("#create-chatroom-button").click(function () {
     var chatroomName = $("#chatroom-input").val();
+    chatroomName = DOMPurify.sanitize(chatroomName);
+    chatroomName = chatroomName.replace(/[^a-z0-9_-]/gi, "");
 
     // Validate chatroomName, do not allow it to be empty
     if (!chatroomName || chatroomName.trim() === "") {
@@ -77,6 +79,9 @@ $(document).ready(function () {
 
   $("#enter-chatroom-button").click(function () {
     var chatroomName = $("#chatroom-input").val();
+    chatroomName = DOMPurify.sanitize(chatroomName);
+    chatroomName = chatroomName.replace(/[^a-z0-9_-]/gi, "");
+
     if (chatroomName) {
       // Check if entered chatroom exists
       if (!isChatroomExist(chatroomName, chatroomNames)) {
@@ -87,8 +92,9 @@ $(document).ready(function () {
       // Save chatroom Name in session storage
       sessionStorage.setItem("chatroomName", chatroomName);
 
-      // Redirect to chatroom.html
-      window.location.href = "chatroom.html";
+      // Redirect to chatroom.html with chatroom name as query parameter
+      window.location.href =
+        "chatroom.html?/" + encodeURIComponent(chatroomName);
     } else {
       alert("Please enter a chatroom name");
     }

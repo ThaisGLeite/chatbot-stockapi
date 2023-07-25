@@ -10,7 +10,7 @@ type ChatMessage struct {
 
 // Define a struct to hold stock data
 type StockData struct {
-	StockCode    string  `json:"stockCode"`
+	StockCode    string  `json:"stockcode"`
 	Price        float64 `json:"price"`
 	ChatroomName string  `json:"chatroom_name"`
 }

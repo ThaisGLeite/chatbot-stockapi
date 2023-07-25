@@ -33,7 +33,7 @@ func getStock(m *nats.Msg) {
 	err := json.Unmarshal(m.Data, &stockData)
 	if err != nil {
 		fmt.Println("Error unmarshalling stock data: ", err)
-		ws.BroadcastMessage(m.Data)
+		ws.BroadcastMessage(m.Data, stockData.ChatroomName)
 		return
 	}
 
@@ -43,10 +43,18 @@ func getStock(m *nats.Msg) {
 	fmt.Println("Stock data: ", botMessage)
 
 	// Send message to WebSocket
-	ws.BroadcastMessage([]byte(botMessage))
+	ws.BroadcastMessage([]byte(botMessage), stockData.ChatroomName)
 }
 
 func getErro(m *nats.Msg) {
-	// Send message to WebSocket
-	ws.BroadcastMessage(m.Data)
+	// Send the error message to WebSocket
+	var stockData model.StockData
+	err := json.Unmarshal(m.Data, &stockData)
+	if err != nil {
+		fmt.Println("Error unmarshalling stock data: ", err)
+		ws.BroadcastMessage(m.Data, stockData.ChatroomName)
+		return
+	}
+
+	ws.BroadcastMessage(m.Data, stockData.ChatroomName)
 }

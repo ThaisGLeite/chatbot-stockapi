@@ -31,7 +31,7 @@ func main() {
 	http.HandleFunc("/retrieveMessages", handle.RetrieveMessagesHandler)
 	http.HandleFunc("/getAllChatrooms", handle.GetAllChatroomsHandler)
 	http.HandleFunc("/checkChatroomExist", handle.CheckChatroomExistHandler)
-	http.HandleFunc("/getStock", ws.Connect)
+	http.HandleFunc("/stockUpdates", ws.Connect)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Println(err)

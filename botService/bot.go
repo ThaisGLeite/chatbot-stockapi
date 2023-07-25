@@ -27,6 +27,7 @@ func InitializeServices(nc natsclient.NATSClientInterface, sdh stock.StockDataHa
 func main() {
 	// Create logger
 	logger = logrus.New()
+
 	// Connect to NATS server
 	natsURL := os.Getenv("NATS_URL")
 	opt := natsclient.ConnectionOptions{
@@ -34,7 +35,6 @@ func main() {
 		ReconnectDelay: 5 * time.Second,
 		MaxReconnects:  3,
 	}
-
 	natsClient, err := natsclient.NewNATSClient(opt)
 	if err != nil {
 		logger.Fatalf("Server could not be started: %v", err)

@@ -109,9 +109,10 @@ func RetrieveChatroomMessages(chatroomName string) ([]model.ChatMessage, error) 
 	return messages, nil
 }
 
+// Updated: StoreUserData stores user's hashed password as a field in a hash with the key 'users'
 func StoreUserData(username string, hashedPassword string) error {
-	// Store form data in Redis
-	err := redisClient.Set(context.Background(), username, hashedPassword, 0).Err()
+	// Store form data in Redis hash with the key 'users'
+	err := redisClient.HSet(context.Background(), "users", username, hashedPassword).Err()
 	return err
 }
 
@@ -132,9 +133,9 @@ func StoreChatroomMessage(chatroomName string, username string, message string) 
 	return err
 }
 
-// This function retrieves hashed password from Redis for the submitted username
+// Updated: This function retrieves hashed password from Redis for the submitted username
 func GetHashedPassword(username string) (string, error) {
-	hashedPassword, err := redisClient.Get(context.Background(), username).Result()
+	hashedPassword, err := redisClient.HGet(context.Background(), "users", username).Result()
 	return hashedPassword, err
 }
 

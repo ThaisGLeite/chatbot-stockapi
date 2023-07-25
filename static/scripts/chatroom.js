@@ -13,7 +13,11 @@ if (!sessionStorage.getItem("token")) {
 }
 
 // Open a WebSocket connection for stock info
-var ws = new WebSocket("ws://localhost:8080/getStock");
+var chatroomName = sessionStorage.getItem("chatroomName");
+var ws = new WebSocket(
+  "ws://localhost:8080/stockUpdates?chatroom=" +
+    encodeURIComponent(chatroomName)
+);
 
 ws.onmessage = function (event) {
   console.log("Received message: " + event.data);

@@ -3,7 +3,7 @@ services:
   botservice:
     environment:
       - NATS_URL=nats://nats:4222
-      - API_URL=https://stooq.com/q/l/?s=%s&f=sd2t2ohlcv&h&e=csv
+      - API_URL=https://stooq.com
       - SERVER_PORT=:8080
     build:
       context: ../

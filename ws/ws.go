@@ -13,56 +13,77 @@ var (
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-	clients = make(map[*websocket.Conn]bool) // active clients
+	clients = make(map[string]map[*websocket.Conn]bool) // active clients categorized by chatroom
 	mutex   sync.Mutex
 )
 
 func Connect(w http.ResponseWriter, r *http.Request) {
-	var err error
 	Conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer Conn.Close()
+
+	// Get chatroom from request URL
+	chatroom := r.URL.Query().Get("chatroom")
+	if chatroom == "" {
+		fmt.Println("No chatroom specified in URL")
+		Conn.Close()
+		return
+	}
 
 	// Register new client
 	mutex.Lock()
-	clients[Conn] = true
-	mutex.Unlock()
-
-	for {
-		_, msg, err := Conn.ReadMessage()
-		if err != nil {
-			fmt.Println(err)
-			DeleteClient(Conn)
-			break
-		}
-
-		// Print the message to the console
-		fmt.Printf("%s sent: %s\n", Conn.RemoteAddr(), string(msg))
-
-		// Broadcast message to all clients
-		BroadcastMessage(msg)
+	if _, ok := clients[chatroom]; !ok {
+		clients[chatroom] = make(map[*websocket.Conn]bool)
 	}
+	clients[chatroom][Conn] = true
+	mutex.Unlock()
+
+	// Make a channel to signal connection close
+	closeConnChan := make(chan struct{})
+
+	go func() {
+		// Read messages from the client
+		for {
+			_, _, err := Conn.ReadMessage()
+			if err != nil {
+				closeConnChan <- struct{}{} // Signal to close the connection
+				break
+			}
+		}
+	}()
+
+	go func() {
+		<-closeConnChan // Wait for signal to close the connection
+		// Unregister the client and close the connection.
+		mutex.Lock()
+		delete(clients[chatroom], Conn)
+		mutex.Unlock()
+		Conn.Close()
+	}()
 }
 
-func DeleteClient(conn *websocket.Conn) {
+func DeleteClient(conn *websocket.Conn, chatroom string) {
 	mutex.Lock()
-	delete(clients, conn)
+	if _, ok := clients[chatroom]; ok {
+		delete(clients[chatroom], conn)
+	}
 	mutex.Unlock()
 }
 
-func BroadcastMessage(msg []byte) {
+func BroadcastMessage(msg []byte, chatroom string) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	for conn := range clients {
-		err := conn.WriteMessage(websocket.TextMessage, msg)
-		if err != nil {
-			fmt.Println("Websocket error:", err)
-			conn.Close()
-			delete(clients, conn)
+	if conns, ok := clients[chatroom]; ok {
+		for conn := range conns {
+			err := conn.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				fmt.Println("Websocket error:", err)
+				conn.Close()
+				delete(clients[chatroom], conn)
+			}
 		}
 	}
 }
