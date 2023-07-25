@@ -32,7 +32,7 @@ func getStock(m *nats.Msg) {
 	var stockData model.StockData
 	err := json.Unmarshal(m.Data, &stockData)
 	if err != nil {
-		fmt.Println("Error unmarshalling stock data: ", err)
+		fmt.Println("getStock: Error unmarshalling stock data: ", err)
 		ws.BroadcastMessage(m.Data, stockData.ChatroomName)
 		return
 	}
@@ -47,14 +47,20 @@ func getStock(m *nats.Msg) {
 }
 
 func getErro(m *nats.Msg) {
-	// Send the error message to WebSocket
-	var stockData model.StockData
-	err := json.Unmarshal(m.Data, &stockData)
-	if err != nil {
-		fmt.Println("Error unmarshalling stock data: ", err)
-		ws.BroadcastMessage(m.Data, stockData.ChatroomName)
+	// Convert message data to string
+	msgStr := string(m.Data)
+
+	// Split the message by " | " to get the chatroomName
+	msgParts := strings.SplitN(msgStr, " | ", 2)
+
+	if len(msgParts) < 2 {
+		fmt.Println("Error: received error message in unexpected format")
 		return
 	}
 
-	ws.BroadcastMessage(m.Data, stockData.ChatroomName)
+	// The first part is chatroomName
+	chatroomName := msgParts[0]
+
+	// Send the error message to WebSocket
+	ws.BroadcastMessage([]byte(msgParts[1]), chatroomName)
 }

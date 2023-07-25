@@ -47,26 +47,26 @@ func (sdh *StockDataHandler) HandleRequest(m *nats.Msg) {
 	var stockDataMessage StockData
 	err := json.Unmarshal(m.Data, &stockDataMessage)
 	if err != nil {
-		sdh.handleError("Error unmarshalling stock request", err, "stock_errors")
+		logrus.Error("Error unmarshalling stock data", err)
 		return
 	}
 
 	stockData, err := sdh.FetchStockData(stockDataMessage.StockCode)
 	if err != nil {
-		sdh.handleError("Error getting stock data", err, "stock_errors")
+		sdh.handleError("Error getting stock data", stockDataMessage.ChatroomName, err)
 		return
 	}
 
 	stockData.ChatroomName = stockDataMessage.ChatroomName
 	stockDataJSON, err := json.Marshal(stockData)
 	if err != nil {
-		sdh.handleError("Error encoding stock data to JSON", err, "stock_errors")
+		sdh.handleError("Error encoding stock data to JSON", stockDataMessage.ChatroomName, err)
 		return
 	}
 
 	err = sdh.natsClient.Publish("stock_data", stockDataJSON)
 	if err != nil {
-		sdh.handleError("Error publishing stock data", err, "stock_errors")
+		sdh.handleError("Error publishing stock data", stockDataMessage.ChatroomName, err)
 		return
 	}
 
@@ -80,13 +80,14 @@ func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *h
 	stockCode := r.URL.Query().Get("stock_code")
 	chatroomName := r.URL.Query().Get("chatroom_name")
 	if stockCode == "" {
-		sdh.handleHTTPError(w, "Missing stock_code", http.StatusBadRequest, "stock_errors")
+		err := errors.New("error")
+		sdh.handleHTTPError(w, "Missing stock_code", http.StatusBadRequest, chatroomName, err)
 		return
 	}
 
 	stockData, err := sdh.FetchStockData(stockCode)
 	if err != nil {
-		sdh.handleHTTPError(w, "Error getting stock data", http.StatusInternalServerError, "stock_errors")
+		sdh.handleHTTPError(w, "Error getting stock data", http.StatusInternalServerError, chatroomName, err)
 		return
 	}
 
@@ -94,13 +95,13 @@ func (sdh *StockDataHandler) GetStockDataHTTPHandler(w http.ResponseWriter, r *h
 
 	stockDataJSON, err := json.Marshal(stockData)
 	if err != nil {
-		sdh.handleHTTPError(w, "Error encoding stock data to JSON", http.StatusInternalServerError, "stock_errors")
+		sdh.handleHTTPError(w, "Error encoding stock data to JSON", http.StatusInternalServerError, chatroomName, err)
 		return
 	}
 
 	err = sdh.natsClient.Publish("stock_data", stockDataJSON)
 	if err != nil {
-		sdh.handleError("Error publishing stock data", err, "stock_errors")
+		sdh.handleError("Error publishing stock data", chatroomName, err)
 		return
 	}
 
@@ -115,16 +116,16 @@ func (sdh *StockDataHandler) recoverPanic(source string) {
 }
 
 // handleError handles an error by logging it and publishing it on NATS
-func (sdh *StockDataHandler) handleError(message string, err error, topic string) {
-	sdh.logger.Errorf("%s: %v", message, err)
-	errMsg := fmt.Sprintf("%s: %v", message, err)
-	sdh.natsClient.Publish(topic, []byte(errMsg))
+func (sdh *StockDataHandler) handleError(message string, chatroomName string, err error) {
+	sdh.logger.Errorf("%s in %s: %v", message, chatroomName, err)
+	errMsg := fmt.Sprintf("%s | %s: %v", chatroomName, message, err)
+	sdh.natsClient.Publish("stock_errors", []byte(errMsg))
 }
 
 // handleHTTPError is like handleError but also sends an HTTP error response
-func (sdh *StockDataHandler) handleHTTPError(w http.ResponseWriter, message string, statusCode int, topic string) {
+func (sdh *StockDataHandler) handleHTTPError(w http.ResponseWriter, message string, statusCode int, chatroomName string, err error) {
 	http.Error(w, message, statusCode)
-	sdh.handleError(message, nil, topic)
+	sdh.handleError(message, chatroomName, err)
 }
 
 // fetchStockData fetches the stock data for a particular stock code
@@ -159,6 +160,7 @@ func (sdh *StockDataHandler) FetchStockData(stockCode string) (*StockData, error
 	// Extract the closing price and convert it to a float.
 	price, err := ParseCSV(records)
 	if err != nil {
+		// If the CSV data is malformed, return an error.
 		return nil, err
 	}
 	// Return the stock data.
@@ -173,7 +175,8 @@ func ParseCSV(records [][]string) (float64, error) {
 		}
 		for _, cell := range row {
 			if strings.Contains(cell, "N/D") {
-				return 0, errors.New("no data available")
+				// No data available
+				return 0, errors.New("no data available, invalid stock code")
 			}
 		}
 	}
