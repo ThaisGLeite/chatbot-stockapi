@@ -1,7 +1,8 @@
 package ws
 
 import (
-	"fmt"
+	"context"
+	"log"
 	"net/http"
 	"sync"
 
@@ -12,23 +13,28 @@ var (
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 	clients = make(map[string]map[*websocket.Conn]bool) // active clients categorized by chatroom
 	mutex   sync.Mutex
 )
 
+// Connect upgrades the HTTP server connection to the WebSocket protocol.
 func Connect(w http.ResponseWriter, r *http.Request) {
-	Conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println(err)
+		http.Error(w, "Failed to open websocket connection", http.StatusBadRequest)
+		log.Printf("Failed to open a WS connection: %v", err)
 		return
 	}
 
 	// Get chatroom from request URL
 	chatroom := r.URL.Query().Get("chatroom")
 	if chatroom == "" {
-		fmt.Println("No chatroom specified in URL")
-		Conn.Close()
+		http.Error(w, "No chatroom specified in URL", http.StatusBadRequest)
+		log.Print("No chatroom specified in URL")
 		return
 	}
 
@@ -37,41 +43,49 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	if _, ok := clients[chatroom]; !ok {
 		clients[chatroom] = make(map[*websocket.Conn]bool)
 	}
-	clients[chatroom][Conn] = true
+	clients[chatroom][conn] = true
 	mutex.Unlock()
 
-	// Make a channel to signal connection close
-	closeConnChan := make(chan struct{})
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go handleMessages(ctx, conn, chatroom)
 	go func() {
-		// Read messages from the client
-		for {
-			_, _, err := Conn.ReadMessage()
-			if err != nil {
-				closeConnChan <- struct{}{} // Signal to close the connection
-				break
-			}
-		}
-	}()
-
-	go func() {
-		<-closeConnChan // Wait for signal to close the connection
-		// Unregister the client and close the connection.
-		mutex.Lock()
-		delete(clients[chatroom], Conn)
-		mutex.Unlock()
-		Conn.Close()
+		<-ctx.Done()
+		DeleteClient(conn, chatroom)
 	}()
 }
 
+// handleMessages listens for new messages broadcast to our chatroom.
+func handleMessages(ctx context.Context, conn *websocket.Conn, chatroom string) {
+	defer conn.Close()
+
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+// DeleteClient removes a client from the clients map.
 func DeleteClient(conn *websocket.Conn, chatroom string) {
 	mutex.Lock()
+	defer mutex.Unlock()
+
 	if _, ok := clients[chatroom]; ok {
 		delete(clients[chatroom], conn)
 	}
-	mutex.Unlock()
 }
 
+// BroadcastMessage sends a message to all clients in the same chatroom.
 func BroadcastMessage(msg []byte, chatroom string) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -80,8 +94,7 @@ func BroadcastMessage(msg []byte, chatroom string) {
 		for conn := range conns {
 			err := conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
-				fmt.Println("Websocket error:", err)
-				conn.Close()
+				log.Printf("Websocket error: %v", err)
 				delete(clients[chatroom], conn)
 			}
 		}

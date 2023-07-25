@@ -1,26 +1,32 @@
 package natsclient
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/nats-io/nats.go"
 )
 
+// Client is the shared NATS client instance.
 var Client *nats.Conn
 
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-	}
-}
-
-func Connect() {
+// Connect establishes a connection to NATS server using the connection string specified by the NATS_URL environment variable.
+func Connect() error {
 	var err error
-	Client, err = nats.Connect(os.Getenv("NATS_URL"))
-	failOnError(err, "Failed to connect to NATS")
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		return fmt.Errorf("the NATS_URL environment variable is not set")
+	}
+	Client, err = nats.Connect(natsURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to NATS at %s: %v", natsURL, err)
+	}
+	return nil
 }
 
+// Close disconnects the shared NATS client instance.
 func Close() {
-	Client.Close()
+	if Client != nil {
+		Client.Close()
+	}
 }

@@ -26,7 +26,8 @@ var (
 	messagePattern      = regexp.MustCompile(`^[^<>]+$`) // Rejecting any HTML tags
 )
 
-func InitializeRedisClient() {
+// InitializeRedisClient creates a new Redis client and tests the connection
+func InitializeRedisClient(ctx context.Context) error {
 	redisClient = redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_URL"),
 		Username: os.Getenv("REDIS_USERNAME"),
@@ -34,10 +35,13 @@ func InitializeRedisClient() {
 		DB:       0, // use default DB
 	})
 
-	pong, err := redisClient.Ping(context.Background()).Result()
+	pong, err := redisClient.Ping(ctx).Result()
 	if err != nil {
-		fmt.Println(pong, err)
+		return fmt.Errorf("failed to connect to Redis: %w", err)
 	}
+	fmt.Println(pong)
+
+	return nil
 }
 
 // Check if chatroomName exists in Redis Set

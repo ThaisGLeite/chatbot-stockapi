@@ -11,166 +11,139 @@ import (
 	"strings"
 )
 
-// Chatroom represents a chatroom with a unique ID and a list of users in the chatroom
+const (
+	stockCommandPrefix = "/stock="
+)
+
 var chatroomCounter int64
 
-// CheckChatroomExistHandler checks if a chatroom exists
+// Error messages
+var (
+	ErrInvalidRequest         = "Invalid request method"
+	ErrChatroomExistenceCheck = "Error checking chatroom existence"
+	ErrCreatingChatroom       = "Error creating chatroom"
+	ErrSendingMessage         = "Error sending message"
+	ErrRetrieveMessages       = "Error retrieving messages"
+	ErrGettingChatrooms       = "Error getting chatrooms"
+)
+
+// checkChatroomExistHandler checks if a chatroom exists
 func CheckChatroomExistHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		// Parse form data
-		r.ParseForm()
+	if r.Method != http.MethodPost {
+		http.Error(w, ErrInvalidRequest, http.StatusMethodNotAllowed)
+		return
+	}
 
-		chatroomName := r.FormValue("chatroomName")
-
-		// Check if chatroom exists in Redis
-		exists, err := redis.CheckChatroomExist(chatroomName)
-		if err != nil {
-			http.Error(w, "Error checking chatroom existence", http.StatusInternalServerError)
-			fmt.Println("Error checking chatroom existence", err)
+	if chatroomName, err := getFormValue(r, "chatroomName"); err == nil {
+		if exists, err := redis.CheckChatroomExist(chatroomName); err == nil {
+			fmt.Fprint(w, strconv.FormatBool(exists))
 			return
 		}
-
-		// Return the result
-		if exists {
-			fmt.Fprint(w, "true")
-		} else {
-			fmt.Fprint(w, "false")
-		}
-	} else {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
+	respondWithError(w, ErrChatroomExistenceCheck)
 }
 
 // CreateChatroomHandler handles chatroom creation requests
 func CreateChatroomHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		// Parse form data
-		r.ParseForm()
-
-		chatroomName := r.FormValue("chatroomName")
-
-		// Increment chatroomCounter
-		chatroomCounter++
-
-		// Store chatroomName with chatroomCounter as ID in Redis
-		err := redis.StoreChatroomData(chatroomName)
-		if err != nil {
-			http.Error(w, "Error creating chatroom", http.StatusInternalServerError)
-			fmt.Println("Error creating chatroom", err)
-			return
-		}
-
-		// Write the chatroom ID to the response
-		w.Write([]byte(strconv.FormatInt(chatroomCounter, 10)))
+	if r.Method != http.MethodPost {
+		http.Error(w, ErrInvalidRequest, http.StatusMethodNotAllowed)
 		return
 	}
 
-	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	if chatroomName, err := getFormValue(r, "chatroomName"); err == nil {
+		chatroomCounter++
+		if err := redis.StoreChatroomData(chatroomName); err == nil {
+			w.Write([]byte(strconv.FormatInt(chatroomCounter, 10)))
+			return
+		}
+	}
+	respondWithError(w, ErrCreatingChatroom)
 }
 
 // SendMessageHandler handles sending messages
 func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		// Parse form data
-		r.ParseForm()
-
-		chatroomName := r.FormValue("chatroomName")
-		username := r.FormValue("username")
-		message := r.FormValue("message")
-
-		// Check if message starts with /stock=
-		if strings.HasPrefix(message, "/stock=") {
-			stockCode := strings.TrimPrefix(message, "/stock=")
-			stockRequest := model.StockData{
-				StockCode:    stockCode,
-				ChatroomName: chatroomName,
-			}
-			requestBytes, err := json.Marshal(stockRequest)
-			if err != nil {
-				fmt.Println("Error marshalling stock request", err)
-				return
-			}
-			// Post the stock code to a NATS queue
-			natsclient.Client.Publish("stock_codes", requestBytes)
-			natsclient.Client.Flush()
-			if err := natsclient.Client.LastError(); err != nil {
-				http.Error(w, "Error posting to NATS queue", http.StatusInternalServerError)
-				fmt.Println("Error posting to NATS queue", err)
-				return
-			}
-
-			return
-		}
-
-		// Store message in chatroom
-		err := redis.StoreMessageInChatroom(chatroomName, username, message)
-		if err != nil {
-			http.Error(w, "Error sending message", http.StatusInternalServerError)
-			fmt.Println("Error sending message", err)
-			return
-		}
-
+	if r.Method != http.MethodPost {
+		http.Error(w, ErrInvalidRequest, http.StatusMethodNotAllowed)
 		return
 	}
 
-	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	chatroomName, _ := getFormValue(r, "chatroomName")
+	username, _ := getFormValue(r, "username")
+	message, _ := getFormValue(r, "message")
+
+	if strings.HasPrefix(message, stockCommandPrefix) {
+		stockRequest := model.StockData{
+			StockCode:    strings.TrimPrefix(message, stockCommandPrefix),
+			ChatroomName: chatroomName,
+		}
+		publishToNATS(w, stockRequest)
+	} else if err := redis.StoreMessageInChatroom(chatroomName, username, message); err != nil {
+		respondWithError(w, ErrSendingMessage)
+	}
 }
 
 // RetrieveMessagesHandler handles retrieving all messages from a chatroom
 func RetrieveMessagesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		// Parse form data
-		r.ParseForm()
-
-		chatroomName := r.FormValue("chatroomName")
-
-		// Retrieve all messages from the chatroom
-		messages, err := redis.RetrieveChatroomMessages(chatroomName)
-		if err != nil {
-			http.Error(w, "Error retrieving messages", http.StatusInternalServerError)
-			fmt.Println("Error retrieving messages", err)
-			return
-		}
-
-		// Convert the slice of messages to JSON
-		messagesJson, err := json.Marshal(messages)
-		if err != nil {
-			http.Error(w, "Error converting messages to JSON", http.StatusInternalServerError)
-			fmt.Println("Error converting messages to JSON", err)
-			return
-		}
-
-		// Write the messages to the response
-		w.Write(messagesJson)
+	if r.Method != http.MethodPost {
+		http.Error(w, ErrInvalidRequest, http.StatusMethodNotAllowed)
 		return
 	}
 
-	http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	if chatroomName, err := getFormValue(r, "chatroomName"); err == nil {
+		if messages, err := redis.RetrieveChatroomMessages(chatroomName); err == nil {
+			respondWithJSON(w, messages)
+			return
+		}
+	}
+	respondWithError(w, ErrRetrieveMessages)
 }
 
 func GetAllChatroomsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		http.Error(w, ErrInvalidRequest, http.StatusMethodNotAllowed)
 		return
 	}
 
-	chatrooms, err := redis.GetAllChatrooms()
+	if chatrooms, err := redis.GetAllChatrooms(); err == nil {
+		respondWithJSON(w, chatrooms)
+		return
+	}
+	respondWithError(w, ErrGettingChatrooms)
+}
+
+func getFormValue(r *http.Request, key string) (string, error) {
+	if err := r.ParseForm(); err != nil {
+		return "", err
+	}
+	return r.FormValue(key), nil
+}
+
+func publishToNATS(w http.ResponseWriter, request model.StockData) {
+	requestBytes, err := json.Marshal(request)
 	if err != nil {
-		http.Error(w, "Error getting chatrooms", http.StatusInternalServerError)
-		fmt.Println("Error getting chatrooms", err)
+		fmt.Println("Error marshalling stock request", err)
 		return
 	}
+	natsclient.Client.Publish("stock_codes", requestBytes)
+	natsclient.Client.Flush()
 
-	// Extract only chatroom names
-	var chatroomNames []string
-	chatroomNames = append(chatroomNames, chatrooms...)
+	if err := natsclient.Client.LastError(); err != nil {
+		respondWithError(w, "Error posting to NATS queue")
+		fmt.Println("Error posting to NATS queue", err)
+	}
+}
 
-	chatroomsJson, err := json.Marshal(chatroomNames)
+func respondWithJSON(w http.ResponseWriter, data interface{}) {
+	jsonData, err := json.Marshal(data)
 	if err != nil {
-		http.Error(w, "Error converting chatrooms to JSON", http.StatusInternalServerError)
-		fmt.Println("Error converting chatrooms to JSON", err)
+		fmt.Println("Error converting data to JSON", err)
+		http.Error(w, "Error converting data to JSON", http.StatusInternalServerError)
 		return
 	}
+	w.Write(jsonData)
+}
 
-	w.Write(chatroomsJson)
+func respondWithError(w http.ResponseWriter, message string) {
+	fmt.Println(message)
+	http.Error(w, message, http.StatusInternalServerError)
 }

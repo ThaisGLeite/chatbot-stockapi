@@ -5,9 +5,11 @@ import (
 	"chatbot/natsclient"
 	"chatbot/redis"
 	"chatbot/ws"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -17,13 +19,21 @@ func main() {
 		fmt.Println("Not connected to NATS server")
 	}
 	// Create redis client
-	redis.InitializeRedisClient()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := redis.InitializeRedisClient(ctx)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	redis.InitializeRedisClient(ctx)
 
 	// Listen to stock data and update redis cache with new data
+	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
 	// Run in a goroutine
-	go handle.ListenStockData()
+	go handle.ListenStockData(ctx)
 
-	handle.StaticFilesHandler()
+	http.Handle("/", handle.StaticFilesHandler())
 	http.HandleFunc("/login", handle.LoginHandler)
 	http.HandleFunc("/register", handle.RegisterHandler)
 	http.HandleFunc("/createChatroom", handle.CreateChatroomHandler)
@@ -39,5 +49,6 @@ func main() {
 		defer natsclient.Close()
 		defer redis.Close()
 		log.Fatalf("Failed to start server: %s", err.Error())
+		<-ctx.Done()
 	}
 }

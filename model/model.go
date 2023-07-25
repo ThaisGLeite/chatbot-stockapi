@@ -1,16 +1,23 @@
 package model
 
-// Define a struct to hold your message data
+// ChatMessage represents a chat message with associated metadata
 type ChatMessage struct {
-	Username     string `json:"username"`
-	Message      string `json:"message"`
-	Timestamp    int64  `json:"timestamp"`
+	// Username of the sender
+	Username string `json:"username"`
+	// Content of the message
+	Message string `json:"message"`
+	// Timestamp when the message was sent
+	Timestamp int64 `json:"timestamp"`
+	// Name of the chatroom the message was sent in
 	ChatroomName string `json:"chatroom_name"`
 }
 
-// Define a struct to hold stock data
+// StockData represents information about a particular stock
 type StockData struct {
-	StockCode    string  `json:"stockcode"`
-	Price        float64 `json:"price"`
-	ChatroomName string  `json:"chatroom_name"`
+	// Code of the stock
+	StockCode string `json:"stock_code"`
+	// Price of the stock
+	Price float64 `json:"price"`
+	// Name of the chatroom where the stock information is used
+	ChatroomName string `json:"chatroom_name"`
 }
