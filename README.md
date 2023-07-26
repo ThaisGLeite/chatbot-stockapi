@@ -24,6 +24,8 @@ The primary objective of Chatbot StockAPI is to enable users to query for live s
 
 - The **chatroom service**, which manages user interactions, including registration, login, and chatroom activities.
 - The **bot service**, which interfaces with the external Stock API to fetch live stock market data and communicates this information to the chatroom service via NATS messaging.
+  
+To ensure high performance and real-time updates, the application takes advantage of Go's built-in concurrency features, including goroutines, channels, and mutexes. This allows for multiple chatroom activities to be handled simultaneously and efficiently, and for data to be securely fetched and sent without causing race conditions.
 
 ## 📖 Project Structure
 
@@ -37,7 +39,8 @@ The application is structured into several key directories:
 - `natsclient`: Code related to NATS client implementation.
 - `redis`: Code related to Redis client implementation.
 - `static`: Holds static files like HTML, CSS, and JavaScript for the frontend of the chatbot.
-- `ws`: Includes the implementation of the Websocket server used for real-time communication.
+- `ws`: Includes the implementation of the Websocket server used for real-time communication. This part of the application leverages channels for synchronizing and communicating between goroutines.
+
 
 ## 🚀 Getting Started
 
