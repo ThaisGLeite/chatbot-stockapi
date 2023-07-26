@@ -44,9 +44,6 @@ func NewClients() *Clients {
 }
 
 func (c *Clients) GetClient(chatroom string) (map[*websocket.Conn]bool, bool) {
-	// Print all connected clients
-	c.PrintClients()
-
 	c.Lock()
 	defer c.Unlock()
 	client, ok := c.clients[chatroom]
@@ -122,7 +119,6 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to set client: %v", err)
 		return
 	}
-	Broadcaster.Clients.PrintClients()
 	go handleMessages(conn, chatroom)
 }
 
@@ -163,16 +159,4 @@ func handleMessages(conn *websocket.Conn, chatroom string) {
 		}
 	}
 
-}
-
-func (c *Clients) PrintClients() {
-	c.Lock()
-	defer c.Unlock()
-	log.Println("Clientes conectados: ")
-	for chatroom, conns := range c.clients {
-		log.Printf("Chatroom: %s\n", chatroom)
-		for conn := range conns {
-			log.Printf("Connected client: %v\n", conn.LocalAddr())
-		}
-	}
 }
