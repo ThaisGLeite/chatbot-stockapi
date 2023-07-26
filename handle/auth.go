@@ -2,7 +2,6 @@ package handle
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/golang-jwt/jwt"
@@ -97,10 +96,6 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Return a 201 status code on successful user creation
-	// Set the status code in the 'Location' header.
-	w.Header().Set("Location", fmt.Sprintf("/login?status=%d", http.StatusCreated))
 
 	// Redirect the client to the login page.
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
